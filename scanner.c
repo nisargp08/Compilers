@@ -79,16 +79,113 @@ Token malar_next_token(void) {
 		/*DECLARE YOUR LOCAL VARIABLES HERE IF NEEDED*/
 
 			while (1) { /* endless loop broken by token returns it will generate a warning */
-
-				GET THE NEXT SYMBOL FROM THE INPUT BUFFER
-
 					c = b_getc(sc_buf);
+				
+					/* Part 1: Implementation of token driven scanner */
 
+					/* End of file check*/
+					if (c == SEOF || c == '\0') {
+						t.code = SEOF_T;
+						/*t.attribute.seof = SEOF1;
+						t.attribute.seof = SEOF1;*/
+						break;
+					}
 
-				/* Part 1: Implementation of token driven scanner */
+					/* isspace() will return true if ' ' , '\t' , '\n' , '\f' , '\v' , '\r' is encountered */
+					if (isspace(c)) {
+						/* Incrementing line counter if '\n' is detected */
+						if (c == '\n') {
+							line++;
+						}
+						continue;
+					}
+
+					/* Switch case to check all the special cases */
+					switch (c) {
+					/* Left parenthesis token */
+					case '(' : 
+						t.code = LPR_T;
+						return t;
+					/* Right parenthesis token */
+					case ')' :
+						t.code = RPR_T;
+						return t;
+					/* Left brace token */
+					case '{' :
+						t.code = LBR_T;
+						return t;
+					/* Right brace token */
+					case '}' : 
+						t.code = RBR_T;
+						return t;
+					/* End of statement token*/
+					case ';' :
+						t.code = EOS_T;
+						return t;
+					/* Comma token*/
+					case ',' :
+						t.code = COM_T;
+						return t;
+					/* String concatenation token */
+					case '#' :
+						t.code = SCC_OP_T;
+						return t;
+
+					/* Arithmetic Operators Token */
+					case '+' :
+						t.code = ART_OP_T;
+						t.attribute.arr_op = PLUS;
+						return t;
+					case '-':
+						t.code = ART_OP_T;
+						t.attribute.arr_op = MINUS;
+						return t;
+					case '*':
+						t.code = ART_OP_T;
+						t.attribute.arr_op = MULT;
+						return t;
+					case '/':
+						t.code = ART_OP_T;
+						t.attribute.arr_op = DIV;
+						return t;
+
+					/* Relational Operators Token */
+					case '=':
+						/*	Fetching one more character from the buffer to check if the next character is another '=' or not.
+							If it is then relational operator token with attribute 'EQ' will be returned */
+						c = b_getc(sc_buf);
+						if (c == '==') {
+							t.code = REL_OP_T;
+							t.attribute.rel_op = EQ;
+							return t;
+						}
+						/* If not then assignment operator token will be returned */
+							b_retract(sc_buf);
+							t.code = ASS_OP_T;
+							return t;
+					case '<':
+						/*	Fetching one more character from the buffer to check if the next character is '>' or not.
+						If it is then relational operator token with attribute 'NE' will be returned */
+						c = b_getc(sc_buf);
+						if (c == '>') {
+							t.code = REL_OP_T;
+							t.attribute.rel_op = NE;
+							return t;
+						}
+						/* If not then relational operator token with attribute 'LT' will be returned */
+							b_retract(sc_buf);
+							t.code = REL_OP_T;
+							t.attribute.rel_op = LT;
+							return t;
+					/* Greater than '>' token */
+					case '>' :
+						t.code = REL_OP_T;
+						t.attribute.rel_op = GT;
+						return t;
+					}
 				/* every token is possessed by its own dedicated code */
 
-				WRITE YOUR CODE FOR PROCESSING THE SPECIAL - CASE TOKENS HERE.
+				/*WRITE YOUR CODE FOR PROCESSING THE SPECIAL - CASE TOKENS HERE.
 					COMMENTS ARE PROCESSED HERE ALSO.
 
 					WHAT FOLLOWS IS A PSEUDO CODE.YOU CAN USE switch STATEMENT
@@ -117,7 +214,8 @@ Token malar_next_token(void) {
 			EXAMPLE:
 				if (c == ' ') continue;
 				if (c == '{') {
-					t.code = RBR_T; /*no attribute */ return t;
+					t.code = RBR_T; /*no attribute */
+					return t;
 					if (c == '+') {
 						t.code = ART_OP_T; t.attribute.arr_op = PLUS * / return t;
 						...
