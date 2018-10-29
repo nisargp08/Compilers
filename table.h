@@ -65,26 +65,26 @@ int  st_table[][TABLE_COLUMNS] = {
 #define ASNR     1  /* accepting state with no retract */
 #define NOAS     0  /* not accepting state */
 
-	int as_table[] = { 
-		/* State 0 */	NOAS,
-		/* State 1 */	NOAS,
-		/* State 2 */	ASWR,
-		/* State 3 */	ASNR,
-		/* State 4 */	NOAS,
-		/* State 5 */	ASWR,
-		/* State 6 */	NOAS,
-		/* State 7 */	NOAS,
-		/* State 8 */	ASWR,
-		/* State 9 */	NOAS,
-		/* State 10 */	
-		/* State 11 */	ASNR,
-		/* State 12 */	ASWR
-	};
+int as_table[] = {
+	/* State 0 */	NOAS,
+	/* State 1 */	NOAS,
+	/* State 2 */	ASWR,
+	/* State 3 */	ASNR,
+	/* State 4 */	NOAS,
+	/* State 5 */	ASWR,
+	/* State 6 */	NOAS,
+	/* State 7 */	NOAS,
+	/* State 8 */	ASWR,
+	/* State 9 */	NOAS,
+	/* State 10 */
+	/* State 11 */	ASNR,
+	/* State 12 */	ASWR
+};
 
 /* Accepting action function declarations */
 
-/* Each accepting states 
-	Argument	:	Takes a string representing a token lexeme 
+/* Each accepting states
+	Argument	:	Takes a string representing a token lexeme
 	Return type :	Token
 */
 Token aa_func02(char *lexeme);	/* VID AVID/KW */
