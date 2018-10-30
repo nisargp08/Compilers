@@ -77,7 +77,8 @@ Token malar_next_token(void) {
 		int accept = NOAS; /* type of state - initially not accepting */
 
 		/*DECLARE YOUR LOCAL VARIABLES HERE IF NEEDED*/
-
+		/* Variable used in loops*/
+		int i = 0;
 		while (1) { /* endless loop broken by token returns it will generate a warning */
 			c = b_getc(sc_buf);
 
@@ -243,20 +244,57 @@ Token malar_next_token(void) {
 				/* String token */
 			case '"':
 				/* Saving the starting position of the of the string : Character after '"' in lexstart*/
-				lexstart = b_getcoffset(sc_buf);
+				/*lexstart = b_getcoffset(sc_buf);*/
+				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf));
+				/* Looping untill next '"' is found */
 				while (c = b_getc(sc_buf) != '"') {
 					if (c == '\n') {
 						line++;
 					}
-					if (c == '\0' || c == (unsigned char)SEOF) {
+					else if (c == '\0' || c == (unsigned char)SEOF) {
 						t.code = ERR_T;
-						t.attribute.err_lex[0] = '"';
-						t.attribute.err_lex[1] = c;
-						t.attribute.err_lex[2] = '\0';
+						lexend = b_getcoffset(sc_buf);
+						b_reset(sc_buf);
+						lexstart = b_retract(sc_buf);
+						if ((lexend - lexstart) > 20) {
+							for (i = 0; i < 17; i++) {
+								t.attribute.err_lex[i] = b_getc(sc_buf);
+							}
+								t.attribute.err_lex[i] = '\0';
+								t.attribute.err_lex[i++] = '.';
+								t.attribute.err_lex[i++] = '.';
+								t.attribute.err_lex[i++] = '.';
+						}
+						else {
+							int j = 0;
+							for (i = 0; i < 20; i++) {
+								c = b_getc(sc_buf);
+								if (c == '\n')
+									continue;
+								t.attribute.err_lex[j++] = c;
+							}
+							t.attribute.err_lex[j] = '\n';
+						}
+						if (c = (unsigned char)SEOF) {
+							b_retract(sc_buf);
+						}
+						else {
+							while (c != (unsigned char)SEOF) {
+								c = b_getc(sc_buf);
+							}
+							b_retract(sc_buf);
+						}
 						return t;
+					} /* SEOF Else if ends*/
+					else if (c == '"') {
+						
 					}
-					continue;
 				}
+
+				/* Second '"' found here so retracting one element as we dont want last '"' in our string*/
+				b_retract(sc_buf);
+				/* Saving the ending position of the of the string : Character before '"' in lexstart*/
+				lexend = b_getcoffset(sc_buf);
 				t.code = STR_T;
 				return t;
 			}
@@ -278,36 +316,9 @@ Token malar_next_token(void) {
 				SOME OF THE LEXICAL ERRORS ARE ALSO PROCESSED BY THE TRANSITION TABLE.
 
 				IN A CASE OF RUNTIME ERROR, THE FUNCTION MUST STORE
-				A NON - NEGATIVE NUMBER INTO THE GLOBAL VARIABLE scerrnum
+				A NON- NEGATIVE NUMBER INTO THE GLOBAL VARIABLE scerrnum
 				AND RETURN A RUN TIME ERROR TOKEN.THE RUN TIME ERROR TOKEN ATTRIBUTE
 				MUST BE THE STRING "RUN TIME ERROR: "
-
-				IF(c == SOME CHARACTER)
-				...
-				SKIP CHARACTER(FOR EXAMPLE SPACE)
-				continue;
-			OR SET TOKEN(SET TOKEN CODE AND TOKEN ATTRIBUTE(IF AVAILABLE))
-				return t;
-		EXAMPLE:
-			if (c == ' ') continue;
-			if (c == '{') {
-				t.code = RBR_T; /*no attribute */
-			return t;
-			if (c == '+') {
-				t.code = ART_OP_T; t.attribute.arr_op = PLUS * / return t;
-				...
-
-					IF(c == '.') TRY TO PROCESS.AND. or .OR.
-					IF SOMETHING ELSE FOLLOWS.OR THE LAST.IS MISSING
-					RETURN AN ERROR TOKEN
-					IF(c == '!') TRY TO PROCESS COMMENT
-					IF THE FOLLOWING CHAR IS NOT !REPORT AN ERROR
-					ELSE IN A LOOP SKIP CHARACTERS UNTIL line terminator is found THEN continue;
-				...
-
-					IF(c == ANOTHER CHARACTER)
-					SET TOKEN
-					return t;
 
 
 				/* Part 2: Implementation of Finite State Machine (DFA)
@@ -315,7 +326,7 @@ Token malar_next_token(void) {
 				Note: Part 2 must follow Part 1 to catch the illegal symbols
 				*/
 
-				SET THE MARK AT THE BEGINING OF THE LEXEME AND SAVE IT IN lexstart
+				/*SET THE MARK AT THE BEGINING OF THE LEXEME AND SAVE IT IN lexstart
 					lexstart = b_mark(sc_buf, ...);
 				....
 					CODE YOUR FINATE STATE MACHINE HERE(FSM or DFA)
@@ -353,7 +364,7 @@ Token malar_next_token(void) {
 
 		DO NOT MODIFY THE CODE OF THIS FUNCTION
 			YOU CAN REMOVE THE COMMENTS
-
+*/
 			int get_next_state(int state, char c, int *accept)
 		{
 			int col;
