@@ -260,10 +260,10 @@ Token malar_next_token(void) {
 							for (i = 0; i < 17; i++) {
 								t.attribute.err_lex[i] = b_getc(sc_buf);
 							}
-								t.attribute.err_lex[i] = '\0';
-								t.attribute.err_lex[i++] = '.';
-								t.attribute.err_lex[i++] = '.';
-								t.attribute.err_lex[i++] = '.';
+							t.attribute.err_lex[i] = '\0';
+							t.attribute.err_lex[i++] = '.';
+							t.attribute.err_lex[i++] = '.';
+							t.attribute.err_lex[i++] = '.';
 						}
 						else {
 							int j = 0;
@@ -287,45 +287,82 @@ Token malar_next_token(void) {
 						return t;
 					} /* SEOF Else if ends*/
 					else if (c == '"') {
-						
+						/* Second '"' found here so retracting one element as we dont want last '"' in our string*/
+						b_retract(sc_buf);
+						/* Saving the ending position of the of the string : Character before '"' in lexstart*/
+						lexend = b_getcoffset(sc_buf);
+						/* Now setting getcoffset to the marked position i.e lexstart so that we can loop through the string to store each character*/
+						b_mark(sc_buf, b_getcoffset(sc_buf));
+						/* setting token to STR_T*/
+						t.code = STR_T;
+						t.attribute.str_offset = b_limit(str_LTBL);
+						/* Looping from beginning to end of string and storing it inside str_LTBL buffer)*/
+						for (i = lexstart; i < lexend; i++) {
+							b_addc(str_LTBL, b_getc(sc_buf));
+						}
+						/* Adding '\0' at the end to make it a C type string*/
+						b_addc(str_LTBL, '\0');
+						b_getc(sc_buf);
+						return t;
 					}
 				}
 
-				/* Second '"' found here so retracting one element as we dont want last '"' in our string*/
-				b_retract(sc_buf);
-				/* Saving the ending position of the of the string : Character before '"' in lexstart*/
-				lexend = b_getcoffset(sc_buf);
-				t.code = STR_T;
+			default:
+				t.code = ERR_T;
+				t.attribute.err_lex[0] = c;
+				t.attribute.err_lex[1] = '\0';
 				return t;
 			}
-			/* every token is possessed by its own dedicated code */
 
-			/*WRITE YOUR CODE FOR PROCESSING THE SPECIAL - CASE TOKENS HERE.
-				COMMENTS ARE PROCESSED HERE ALSO.
+			/*********************************************************************/
+			/* Part - 2 : Implemenation of DFA or Transition table driven scanner*/
+			/*********************************************************************/
+			if (isdigit(c) || isalnum(c)) {
+				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf));
+				c = b_getc(sc_buf);
+				state = get_next_state(state, c, &accept);
+				while (accept == NOAS) {
+					state = get_next_state(state, c, &accept);
+					if (accept != NOAS) {
+						break;
+					}
+					c = b_getc(sc_buf);
+				}
 
-				WHAT FOLLOWS IS A PSEUDO CODE.YOU CAN USE switch STATEMENT
-				INSTEAD OF if - else TO PROCESS THE SPECIAL CASES
-				DO NOT FORGET TO COUNT THE PROGRAM LINES
+				if (accept == ASWR) {
+					b_retract(sc_buf);
+				}
+				lexend = b_getcoffset(sc_buf);
+				lex_buf = b_allocate((lexend - lexstart), 0, 'f');
 
-				NOTE :
-			IF LEXICAL ERROR OR ILLEGAL CHARACTER ARE FOUND THE SCANNER MUST RETURN AN ERROR TOKEN.
-				ILLEGAL CHARACTER IS ONE THAT IS NOT DEFINED IN THE LANGUAGE SPECIFICATION
-				OR IT IS OUT OF CONTEXT.
-				THE ILLEGAL CHAR IS THE ATTRIBUTE OF THE ERROR TOKEN
-				THE ILLEGAL CHARACTERS ARE PROCESSED BY THE TRANSITION TABLE.
-				SOME OF THE LEXICAL ERRORS ARE ALSO PROCESSED BY THE TRANSITION TABLE.
-
-				IN A CASE OF RUNTIME ERROR, THE FUNCTION MUST STORE
-				A NON- NEGATIVE NUMBER INTO THE GLOBAL VARIABLE scerrnum
-				AND RETURN A RUN TIME ERROR TOKEN.THE RUN TIME ERROR TOKEN ATTRIBUTE
-				MUST BE THE STRING "RUN TIME ERROR: "
-
-
-				/* Part 2: Implementation of Finite State Machine (DFA)
-				or Transition Table driven Scanner
-				Note: Part 2 must follow Part 1 to catch the illegal symbols
-				*/
-
+				if (lex_buf == NULL) {
+					char runtimeErrorString[] = "RUN TIME ERROR: ";
+					t.code = RTE_T;
+					for (i = 0; i < strlen(runtimeErrorString); i++) {
+						t.attribute.err_lex[i] = runtimeErrorString[i];
+					}
+					t.attribute.err_lex[i] = '\0';
+					scerrnum = 1;
+					free(lex_buf);
+				}
+				b_reset(sc_buf);
+				for (i = lexstart; i < lexend; i++) {
+					c = b_getc(sc_buf);
+					b_addc(lex_buf, c);
+				}
+				b_addc(lex_buf, '\0');
+				aa_table[state]((lex_buf));
+				b_free(lex_buf);
+				return t;
+			}
+			t.code = ERR_T;
+			t.attribute.err_lex[0] = c;
+			t.attribute.err_lex[1] = '\0';
+			return t;
+		}/* While ends*/
+		return t;
+	}
+}/*Function ends*/
 				/*SET THE MARK AT THE BEGINING OF THE LEXEME AND SAVE IT IN lexstart
 					lexstart = b_mark(sc_buf, ...);
 				....
@@ -359,6 +396,10 @@ Token malar_next_token(void) {
 					b_free(lex_buf);
 				return t;
 			}//end while(1)
+			IN A CASE OF RUNTIME ERROR, THE FUNCTION MUST STORE
+				A NON- NEGATIVE NUMBER INTO THE GLOBAL VARIABLE scerrnum
+				AND RETURN A RUN TIME ERROR TOKEN.THE RUN TIME ERROR TOKEN ATTRIBUTE
+				MUST BE THE STRING "RUN TIME ERROR: "
 		}
 
 
@@ -366,170 +407,170 @@ Token malar_next_token(void) {
 			YOU CAN REMOVE THE COMMENTS
 */
 			int get_next_state(int state, char c, int *accept)
-		{
-			int col;
-			int next;
-			col = char_class(c);
-			next = st_table[state][col];
+			{
+				int col;
+				int next;
+				col = char_class(c);
+				next = st_table[state][col];
 #ifdef DEBUG
-			printf("Input symbol: %c Row: %d Column: %d Next: %d \n", c, state, col, next);
+				printf("Input symbol: %c Row: %d Column: %d Next: %d \n", c, state, col, next);
 #endif
-			/*
-			The assert(int test) macro can be used to add run-time diagnostic to programs
-			and to "defend" from producing unexpected results.
-			assert() is a macro that expands to an if statement;
-			if test evaluates to false (zero) , assert aborts the program
-			(by calling abort()) and sends the following message on stderr:
+				/*
+				The assert(int test) macro can be used to add run-time diagnostic to programs
+				and to "defend" from producing unexpected results.
+				assert() is a macro that expands to an if statement;
+				if test evaluates to false (zero) , assert aborts the program
+				(by calling abort()) and sends the following message on stderr:
 
-			Assertion failed: test, file filename, line linenum
+				Assertion failed: test, file filename, line linenum
 
-			The filename and linenum listed in the message are the source file name
-			and line number where the assert macro appears.
-			If you place the #define NDEBUG directive ("no debugging")
-			in the source code before the #include <assert.h> directive,
-			the effect is to comment out the assert statement.
-			*/
-			assert(next != IS);
+				The filename and linenum listed in the message are the source file name
+				and line number where the assert macro appears.
+				If you place the #define NDEBUG directive ("no debugging")
+				in the source code before the #include <assert.h> directive,
+				the effect is to comment out the assert statement.
+				*/
+				assert(next != IS);
 
-			/*
-			The other way to include diagnostics in a program is to use
-			conditional preprocessing as shown bellow. It allows the programmer
-			to send more details describing the run-time problem.
-			Once the program is tested thoroughly #define DEBUG is commented out
-			or #undef DEBUF is used - see the top of the file.
-			*/
+				/*
+				The other way to include diagnostics in a program is to use
+				conditional preprocessing as shown bellow. It allows the programmer
+				to send more details describing the run-time problem.
+				Once the program is tested thoroughly #define DEBUG is commented out
+				or #undef DEBUF is used - see the top of the file.
+				*/
 #ifdef DEBUG
-			if (next == IS) {
-				printf("Scanner Error: Illegal state:\n");
-				printf("Input symbol: %c Row: %d Column: %d\n", c, state, col);
-				exit(1);
+				if (next == IS) {
+					printf("Scanner Error: Illegal state:\n");
+					printf("Input symbol: %c Row: %d Column: %d\n", c, state, col);
+					exit(1);
+				}
+#endif
+				*accept = as_table[next];
+				return next;
 			}
-#endif
-			*accept = as_table[next];
-			return next;
-		}
 
-		int char_class(char c)
-		{
-			int val;
+			int char_class(char c)
+			{
+				int val;
 
-			THIS FUNCTION RETURNS THE COLUMN NUMBER IN THE TRANSITION
-				TABLE st_table FOR THE INPUT CHARACTER c.
-				SOME COLUMNS MAY REPRESENT A CHARACTER CLASS .
-				FOR EXAMPLE IF COLUMN 2 REPRESENTS[A - Za - z]
-				THE FUNCTION RETURNS 2 EVERY TIME c IS ONE
-				OF THE LETTERS A, B, ..., Z, a, b...z.
-				PAY ATTENTION THAT THE FIRST COLOMN IN THE TT IS 0 (has index 0)
+				THIS FUNCTION RETURNS THE COLUMN NUMBER IN THE TRANSITION
+					TABLE st_table FOR THE INPUT CHARACTER c.
+					SOME COLUMNS MAY REPRESENT A CHARACTER CLASS .
+					FOR EXAMPLE IF COLUMN 2 REPRESENTS[A - Za - z]
+					THE FUNCTION RETURNS 2 EVERY TIME c IS ONE
+					OF THE LETTERS A, B, ..., Z, a, b...z.
+					PAY ATTENTION THAT THE FIRST COLOMN IN THE TT IS 0 (has index 0)
 
-				return val;
-		}
+					return val;
+			}
 
 
 
-		HERE YOU WRITE THE DEFINITIONS FOR YOUR ACCEPTING FUNCTIONS.
-			************************************************************
+			HERE YOU WRITE THE DEFINITIONS FOR YOUR ACCEPTING FUNCTIONS.
+				************************************************************
 
-			ACCEPTING FUNCTION FOR THE arithmentic variable identifier AND keywords(VID - AVID / KW)
-			REPLACE XX WITH THE CORRESPONDING ACCEPTING STATE NUMBER
+				ACCEPTING FUNCTION FOR THE arithmentic variable identifier AND keywords(VID - AVID / KW)
+				REPLACE XX WITH THE CORRESPONDING ACCEPTING STATE NUMBER
 
-			Token aa_funcXX(char lexeme[]) {
+				Token aa_funcXX(char lexeme[]) {
 
-			WHEN CALLED THE FUNCTION MUST
-				1. CHECK IF THE LEXEME IS A KEYWORD.
-				IF YES, IT MUST RETURN A TOKEN WITH THE CORRESPONDING ATTRIBUTE
-				FOR THE KEYWORD.THE ATTRIBUTE CODE FOR THE KEYWORD
-				IS ITS INDEX IN THE KEYWORD LOOKUP TABLE(kw_table in table.h).
-				IF THE LEXEME IS NOT A KEYWORD, GO TO STEP 2.
+				WHEN CALLED THE FUNCTION MUST
+					1. CHECK IF THE LEXEME IS A KEYWORD.
+					IF YES, IT MUST RETURN A TOKEN WITH THE CORRESPONDING ATTRIBUTE
+					FOR THE KEYWORD.THE ATTRIBUTE CODE FOR THE KEYWORD
+					IS ITS INDEX IN THE KEYWORD LOOKUP TABLE(kw_table in table.h).
+					IF THE LEXEME IS NOT A KEYWORD, GO TO STEP 2.
 
-				2. SET a AVID TOKEN.
-				IF THE lexeme IS LONGER than VID_LEN(see token.h) CHARACTERS,
-				ONLY FIRST VID_LEN CHARACTERS ARE STORED
-				INTO THE VARIABLE ATTRIBUTE ARRAY vid_lex[](see token.h) .
-				ADD \0 AT THE END TO MAKE A C - type STRING.
-				return t;
-		}
+					2. SET a AVID TOKEN.
+					IF THE lexeme IS LONGER than VID_LEN(see token.h) CHARACTERS,
+					ONLY FIRST VID_LEN CHARACTERS ARE STORED
+					INTO THE VARIABLE ATTRIBUTE ARRAY vid_lex[](see token.h) .
+					ADD \0 AT THE END TO MAKE A C - type STRING.
+					return t;
+			}
 
-		ACCEPTING FUNCTION FOR THE string variable identifier(VID - SVID)
-			REPLACE XX WITH THE CORRESPONDING ACCEPTING STATE NUMBER
+			ACCEPTING FUNCTION FOR THE string variable identifier(VID - SVID)
+				REPLACE XX WITH THE CORRESPONDING ACCEPTING STATE NUMBER
 
-			Token aa_funcXX(char lexeme[]) {
+				Token aa_funcXX(char lexeme[]) {
 
-			WHEN CALLED THE FUNCTION MUST
-				1. SET a SVID TOKEN.
-				IF THE lexeme IS LONGER than VID_LEN characters,
-				ONLY FIRST VID_LEN - 1 CHARACTERS ARE STORED
-				INTO THE VARIABLE ATTRIBUTE ARRAY vid_lex[],
-				AND THEN THE $ CHARACTER IS APPENDED TO THE NAME.
-				ADD \0 AT THE END TO MAKE A C - type STRING.
+				WHEN CALLED THE FUNCTION MUST
+					1. SET a SVID TOKEN.
+					IF THE lexeme IS LONGER than VID_LEN characters,
+					ONLY FIRST VID_LEN - 1 CHARACTERS ARE STORED
+					INTO THE VARIABLE ATTRIBUTE ARRAY vid_lex[],
+					AND THEN THE $ CHARACTER IS APPENDED TO THE NAME.
+					ADD \0 AT THE END TO MAKE A C - type STRING.
 
-				return t;
-		}
+					return t;
+			}
 
-		ACCEPTING FUNCTION FOR THE floating - point literal(FPL)
+			ACCEPTING FUNCTION FOR THE floating - point literal(FPL)
 
-			Token aa_funcXX(char lexeme[]) {
+				Token aa_funcXX(char lexeme[]) {
 
-			THE FUNCTION MUST CONVERT THE LEXEME TO A FLOATING POINT VALUE,
-				WHICH IS THE ATTRIBUTE FOR THE TOKEN.
-				THE VALUE MUST BE IN THE SAME RANGE AS the value of 4 - byte float in C.
-				IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
-				THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
-				than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
-				STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
-				err_lex C - type string.
-				BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
-				return t;
-		}
+				THE FUNCTION MUST CONVERT THE LEXEME TO A FLOATING POINT VALUE,
+					WHICH IS THE ATTRIBUTE FOR THE TOKEN.
+					THE VALUE MUST BE IN THE SAME RANGE AS the value of 4 - byte float in C.
+					IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
+					THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
+					than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
+					STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
+					err_lex C - type string.
+					BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
+					return t;
+			}
 
-		ACCEPTING FUNCTION FOR THE integer literal(IL) - decimal constant(DIL)
+			ACCEPTING FUNCTION FOR THE integer literal(IL) - decimal constant(DIL)
 
-			Token aa_funcXX(char lexeme[]) {
+				Token aa_funcXX(char lexeme[]) {
 
-			THE FUNCTION MUST CONVERT THE LEXEME REPRESENTING A DECIMAL CONSTANT
-				TO A DECIMAL INTEGER VALUE, WHICH IS THE ATTRIBUTE FOR THE TOKEN.
-				THE VALUE MUST BE IN THE SAME RANGE AS the value of 2 - byte integer in C.
-				IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
-				THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
-				than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
-				STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
-				err_lex C - type string.
-				BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
-				return t;
-		}
+				THE FUNCTION MUST CONVERT THE LEXEME REPRESENTING A DECIMAL CONSTANT
+					TO A DECIMAL INTEGER VALUE, WHICH IS THE ATTRIBUTE FOR THE TOKEN.
+					THE VALUE MUST BE IN THE SAME RANGE AS the value of 2 - byte integer in C.
+					IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
+					THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
+					than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
+					STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
+					err_lex C - type string.
+					BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
+					return t;
+			}
 
-		ACCEPTING FUNCTION FOR THE string literal(SL)
+			ACCEPTING FUNCTION FOR THE string literal(SL)
 
-			Token aa_funcXX(char lexeme[]) {
+				Token aa_funcXX(char lexeme[]) {
 
-			THE FUNCTION MUST STORE THE lexeme PARAMETER CONTENT INTO THE STRING LITERAL TABLE(str_LTBL)
-				FIRST THE ATTRIBUTE FOR THE TOKEN MUST BE SET.
-				THE ATTRIBUTE OF THE STRING TOKEN IS THE OFFSET FROM
-				THE BEGINNING OF THE str_LTBL char buffer TO THE LOCATION
-				WHERE THE FIRST CHAR OF THE lexeme CONTENT WILL BE ADDED TO THE BUFFER.
-				USING b_addc(..)COPY THE lexeme content INTO str_LTBL.
-				THE OPENING AND CLOSING " MUST BE IGNORED DURING THE COPING PROCESS. 
-				ADD '\0' AT THE END MAKE THE STRING C - type string
-				IF THE STING lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
-				SET THE STRING TOKEN CODE.
-				return t;
-		}
+				THE FUNCTION MUST STORE THE lexeme PARAMETER CONTENT INTO THE STRING LITERAL TABLE(str_LTBL)
+					FIRST THE ATTRIBUTE FOR THE TOKEN MUST BE SET.
+					THE ATTRIBUTE OF THE STRING TOKEN IS THE OFFSET FROM
+					THE BEGINNING OF THE str_LTBL char buffer TO THE LOCATION
+					WHERE THE FIRST CHAR OF THE lexeme CONTENT WILL BE ADDED TO THE BUFFER.
+					USING b_addc(..)COPY THE lexeme content INTO str_LTBL.
+					THE OPENING AND CLOSING " MUST BE IGNORED DURING THE COPING PROCESS. 
+					ADD '\0' AT THE END MAKE THE STRING C - type string
+					IF THE STING lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
+					SET THE STRING TOKEN CODE.
+					return t;
+			}
 
-		ACCEPTING FUNCTION FOR THE ERROR TOKEN
+			ACCEPTING FUNCTION FOR THE ERROR TOKEN
 
-			Token aa_funcXX(char lexeme[]) {
+				Token aa_funcXX(char lexeme[]) {
 
-			THE FUNCTION SETS THE ERROR TOKEN.lexeme[] CONTAINS THE ERROR
-				THE ATTRIBUTE OF THE ERROR TOKEN IS THE lexeme CONTENT ITSELF
-				AND IT MUST BE STORED in err_lex.IF THE ERROR lexeme IS LONGER
-				than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
-				STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
-				err_lex C - type string.
-				IF THE ERROR lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
-				BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
-				return t;
-		}
+				THE FUNCTION SETS THE ERROR TOKEN.lexeme[] CONTAINS THE ERROR
+					THE ATTRIBUTE OF THE ERROR TOKEN IS THE lexeme CONTENT ITSELF
+					AND IT MUST BE STORED in err_lex.IF THE ERROR lexeme IS LONGER
+					than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
+					STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
+					err_lex C - type string.
+					IF THE ERROR lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
+					BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
+					return t;
+			}
 
-		HERE YOU WRITE YOUR ADDITIONAL FUNCTIONS(IF ANY).
-			FOR EXAMPLE
+			HERE YOU WRITE YOUR ADDITIONAL FUNCTIONS(IF ANY).
+				FOR EXAMPLE
 
-			int iskeyword(char * kw_lexeme) {}
+				int iskeyword(char * kw_lexeme) {}
