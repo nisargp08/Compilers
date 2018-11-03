@@ -52,10 +52,10 @@ static pBuffer sc_buf; /*pointer to input source buffer*/
 					   /* scanner.c static(local) function  prototypes */
 static int char_class(char c); /* character class function */
 static int get_next_state(int, char, int *); /* state machine function */
-static int iskeyword(char * kw_lexeme); /*keywords lookup functuion */
+											 /*static int iskeyword(char * kw_lexeme); /*keywords lookup functuion */
 
 
-										/*Initializes scanner */
+											 /*Initializes scanner */
 int scanner_init(Buffer * psc_buf) {
 	if (b_isempty(psc_buf)) return EXIT_FAILURE;/*1*/
 												/* in case the buffer has been read previously  */
@@ -76,22 +76,23 @@ Token malar_next_token(void) {
 		short lexend;    /*end   offset of a lexeme in the input char buffer (array)*/
 		int accept = NOAS; /* type of state - initially not accepting */
 
-		/*DECLARE YOUR LOCAL VARIABLES HERE IF NEEDED*/
-		/* Variable used in loops*/
+						   /*DECLARE YOUR LOCAL VARIABLES HERE IF NEEDED*/
+						   /* Variable used in loops*/
 		int i = 0;
 		while (1) { /* endless loop broken by token returns it will generate a warning */
 			c = b_getc(sc_buf);
 
 			/* Part 1: Implementation of token driven scanner */
-
-			/* End of file check*/
-			if (c == (unsigned char)SEOF || c == '\0') {
+			if (c == (unsigned char)SEOF) {
 				t.code = SEOF_T;
-				/*t.attribute.seof = SEOF1;
-				t.attribute.seof = SEOF1;*/
-				break;
+				t.attribute.seof = SEOF1;
+				return t;
 			}
-
+			if (c == BACKSLASHZERO) {
+				t.code = SEOF_T;
+				t.attribute.seof = SEOF2;
+				return t;
+			}
 			/* isspace() will return true if ' ' , '\t' , '\n' , '\f' , '\v' , '\r' is encountered */
 			if (isspace(c)) {
 				/* Incrementing line counter if '\n' is detected */
@@ -100,8 +101,52 @@ Token malar_next_token(void) {
 				}
 				continue;
 			}
+			/* DFA Implementation - When the character is an alphabet or a number */
+			if (isalnum(c)) {
+				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf));
+				c = b_getc(sc_buf);
+				state = get_next_state(state, c, &accept);
+				while (accept == NOAS) {
+					state = get_next_state(state, c, &accept);
+					if (accept != NOAS) {
+						break;
+					}
+					c = b_getc(sc_buf);
+				}
 
-			/* Switch case to check all the special cases */
+				if (accept == ASWR) {
+					b_retract(sc_buf);
+				}
+				lexend = b_getcoffset(sc_buf);
+				lex_buf = b_allocate((lexend - lexstart), 0, 'f');
+
+				if (lex_buf == NULL) {
+					char runtimeErrorString[] = "RUN TIME ERROR: ";
+					t.code = RTE_T;
+					for (i = 0; i < strlen(runtimeErrorString); i++) {
+						t.attribute.err_lex[i] = runtimeErrorString[i];
+					}
+					t.attribute.err_lex[i] = '\0';
+					scerrnum = 1;
+					free(lex_buf);
+				}
+				b_reset(sc_buf);
+				for (i = lexstart; i < lexend; i++) {
+					c = b_getc(sc_buf);
+					b_addc(lex_buf, c);
+				}
+				b_addc(lex_buf, '\0');
+				aa_table[state]((lex_buf));
+				b_free(lex_buf);
+				return t;
+			}
+			t.code = ERR_T;
+			t.attribute.err_lex[0] = c;
+			t.attribute.err_lex[1] = '\0';
+			return t;
+			}
+
+			/* Switch case begins */
 			switch (c) {
 				/* Left parenthesis token */
 			case '(':
@@ -153,9 +198,9 @@ Token malar_next_token(void) {
 				/* Relational Operators Token */
 			case '=':
 				/*	Fetching one more character from the buffer to check if the next character is another '=' or not.
-					If it is then relational operator token with attribute 'EQ' will be returned */
+				If it is then relational operator token with attribute 'EQ' will be returned */
 				c = b_getc(sc_buf);
-				if (c == '==') {
+				if (c == '=') {
 					t.code = REL_OP_T;
 					t.attribute.rel_op = EQ;
 					return t;
@@ -164,6 +209,7 @@ Token malar_next_token(void) {
 				b_retract(sc_buf);
 				t.code = ASS_OP_T;
 				return t;
+
 			case '<':
 				/*	Fetching one more character from the buffer to check if the next character is '>' or not.
 				If it is then relational operator token with attribute 'NE' will be returned */
@@ -195,8 +241,11 @@ Token malar_next_token(void) {
 					t.attribute.rel_op = AND;
 					return t;
 				}
+				else {
+					b_reset(sc_buf);
+				}
 				/* Checking for relational operator '.OR.' here */
-				else if (b_getc(sc_buf) == 'O' && b_getc(sc_buf) == 'R' && b_getc(sc_buf) == '.') {
+				if (b_getc(sc_buf) == 'O' && b_getc(sc_buf) == 'R' && b_getc(sc_buf) == '.') {
 					t.code = LOG_OP_T;
 					t.attribute.rel_op = OR;
 					return t;
@@ -211,51 +260,48 @@ Token malar_next_token(void) {
 
 				/* Comment token '!!' */
 			case '!':
+				/* Setting mark so that we can retract back*/
+				b_mark(sc_buf, b_getcoffset(sc_buf));
 				/* Checking if the element matches the comment pattern meaning '!!' */
 				if (b_getc(sc_buf) == '!') {
 					/* Looping untill new line is found*/
-					while (b_getc(sc_buf) != '\n') {
-						/* If file ends before new line than it returns Source EOF token*/
-						if (c == (unsigned char)SEOF) {
+					while ((c = b_getc(sc_buf)) != '\n') {
+						if (c == BACKSLASHZERO) {
 							t.code = SEOF_T;
+							t.attribute.seof = SEOF2;
 							return t;
 						}
+						continue;
 					}
 					line++;
 					continue;
 				}
 				/* When pattern is not matching meaning only one '!' was found.So returning error token and storing the elemennt in err_lex array*/
 				else {
+					b_reset(sc_buf);
 					t.code = ERR_T;
-					t.attribute.err_lex[0] = '!';
-					t.attribute.err_lex[1] = c;
-					t.attribute.err_lex[2] = '\0';
-					/* While loop to reach the end of line so that we can increment the line counter*/
-					while (c != '\n') {
-						c = b_getc(sc_buf);
-						if (c == (unsigned char)SEOF) {
-							t.code = SEOF_T;
-							return t;
-						}
-					}
-					line++;
+					t.attribute.err_lex[0] = c;
+					t.attribute.err_lex[1] = BACKSLASHZERO;
 					return t;
 				}
-				/* String token */
+
 			case '"':
-				/* Saving the starting position of the of the string : Character after '"' in lexstart*/
-				/*lexstart = b_getcoffset(sc_buf);*/
+				/* Marking the beginning of the string*/
 				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf));
-				/* Looping untill next '"' is found */
-				while (c = b_getc(sc_buf) != '"') {
+				c = b_getc(sc_buf);
+				while (c != '"') {
+					/* Incrementing line counter everytime '\n' is found*/
 					if (c == '\n') {
 						line++;
 					}
-					else if (c == '\0' || c == (unsigned char)SEOF) {
+					/* When file ends without finding another '"' */
+					else if (c == BACKSLASHZERO || c == (unsigned char)SEOF) {
 						t.code = ERR_T;
+						/* String end stored in lexend*/
 						lexend = b_getcoffset(sc_buf);
+						/* Reseting the getcoffset at the beginning of the string*/
 						b_reset(sc_buf);
-						lexstart = b_retract(sc_buf);
+						/* When illegal string is greater than 20 in lenght then array will only hold the first 17 elements and ... for the rest 3 elements*/
 						if ((lexend - lexstart) > 20) {
 							for (i = 0; i < 17; i++) {
 								t.attribute.err_lex[i] = b_getc(sc_buf);
@@ -265,312 +311,108 @@ Token malar_next_token(void) {
 							t.attribute.err_lex[i++] = '.';
 							t.attribute.err_lex[i++] = '.';
 						}
+						/* When illegal string is smaller than 20 in length then it will be stored in array*/
 						else {
 							int j = 0;
-							for (i = 0; i < 20; i++) {
+							for (i = lexstart; i < lexend; i++) {
 								c = b_getc(sc_buf);
 								if (c == '\n')
 									continue;
 								t.attribute.err_lex[j++] = c;
 							}
-							t.attribute.err_lex[j] = '\n';
 						}
-						if (c = (unsigned char)SEOF) {
-							b_retract(sc_buf);
+						/* This is for setting the getcoffset to the element prior to '\0' */
+						while (c = b_getc(sc_buf) != BACKSLASHZERO) {
+							c = b_getc(sc_buf);
 						}
-						else {
-							while (c != (unsigned char)SEOF) {
-								c = b_getc(sc_buf);
-							}
-							b_retract(sc_buf);
-						}
+						b_retract(sc_buf);
+						/*Token returned*/
 						return t;
 					} /* SEOF Else if ends*/
-					else if (c == '"') {
-						/* Second '"' found here so retracting one element as we dont want last '"' in our string*/
-						b_retract(sc_buf);
-						/* Saving the ending position of the of the string : Character before '"' in lexstart*/
-						lexend = b_getcoffset(sc_buf);
-						/* Now setting getcoffset to the marked position i.e lexstart so that we can loop through the string to store each character*/
-						b_mark(sc_buf, b_getcoffset(sc_buf));
-						/* setting token to STR_T*/
-						t.code = STR_T;
-						t.attribute.str_offset = b_limit(str_LTBL);
+					/* Incrementing to next character in the string*/
+					c = b_getc(sc_buf);
+				}
+
+				/* Second '"' found here */
+				if (c == '"') {
+					/* setting token to STR_T*/
+					t.code = STR_T;
+					t.attribute.str_offset = b_limit(str_LTBL);
+					/* so retracting one element as we dont want last '"' in our string and setting it to lexend*/
+					lexend = b_retract(sc_buf);
+					/* When the string is not empty*/
+					if (lexstart != lexend) {
+						/* Moving the getcoffset to beginning of the string meanign lexstart*/
+						b_reset(sc_buf);
 						/* Looping from beginning to end of string and storing it inside str_LTBL buffer)*/
 						for (i = lexstart; i < lexend; i++) {
 							b_addc(str_LTBL, b_getc(sc_buf));
 						}
-						/* Adding '\0' at the end to make it a C type string*/
-						b_addc(str_LTBL, '\0');
+						/* For getting last '"' to mark the completion of the string*/
 						b_getc(sc_buf);
-						return t;
 					}
+					/* Adding '\0' at the end to make it a C type string*/
+					b_addc(str_LTBL, '\0');
+					return t;
 				}
-
-			default:
+			default :
 				t.code = ERR_T;
 				t.attribute.err_lex[0] = c;
-				t.attribute.err_lex[1] = '\0';
+				t.attribute.err_lex[1] = BACKSLASHZERO;
 				return t;
 			}
-
-			/*********************************************************************/
-			/* Part - 2 : Implemenation of DFA or Transition table driven scanner*/
-			/*********************************************************************/
-			if (isdigit(c) || isalnum(c)) {
-				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf));
-				c = b_getc(sc_buf);
-				state = get_next_state(state, c, &accept);
-				while (accept == NOAS) {
-					state = get_next_state(state, c, &accept);
-					if (accept != NOAS) {
-						break;
-					}
-					c = b_getc(sc_buf);
-				}
-
-				if (accept == ASWR) {
-					b_retract(sc_buf);
-				}
-				lexend = b_getcoffset(sc_buf);
-				lex_buf = b_allocate((lexend - lexstart), 0, 'f');
-
-				if (lex_buf == NULL) {
-					char runtimeErrorString[] = "RUN TIME ERROR: ";
-					t.code = RTE_T;
-					for (i = 0; i < strlen(runtimeErrorString); i++) {
-						t.attribute.err_lex[i] = runtimeErrorString[i];
-					}
-					t.attribute.err_lex[i] = '\0';
-					scerrnum = 1;
-					free(lex_buf);
-				}
-				b_reset(sc_buf);
-				for (i = lexstart; i < lexend; i++) {
-					c = b_getc(sc_buf);
-					b_addc(lex_buf, c);
-				}
-				b_addc(lex_buf, '\0');
-				aa_table[state]((lex_buf));
-				b_free(lex_buf);
-				return t;
-			}
-			t.code = ERR_T;
-			t.attribute.err_lex[0] = c;
-			t.attribute.err_lex[1] = '\0';
-			return t;
+			/* Switch case ends */
 		}/* While ends*/
-		return t;
-	}
+	}/* Second { ends here */
 }/*Function ends*/
-				/*SET THE MARK AT THE BEGINING OF THE LEXEME AND SAVE IT IN lexstart
-					lexstart = b_mark(sc_buf, ...);
-				....
-					CODE YOUR FINATE STATE MACHINE HERE(FSM or DFA)
-					IT IMPLEMENTS THE FOLLOWING ALGORITHM :
 
-				FSM0.Begin with state = 0 and the input character c
-					FSM1.Get the next state from the transition table calling
-					state = get_next_state(state, c, &accept);
-				FSM2.Get the next character
-					FSM3.If the state is not accepting(accept == NOAS), go to step FSM1
-					If the step is accepting, token is found, leave the machine and
-					call an accepting function as described below.
+static int char_class(char c) {
+	int val = 0;
+	/* State 2 */
+	if (isalpha(c)) {
+		val = 2;
+	}
+	/* State 5 */
+	else if (isdigit(c)) {
+		val = 5;
+	}
 
-
-					RETRACT  getc_offset IF THE FINAL STATE IS A RETRACTING FINAL STATE
-
-					SET lexend TO getc_offset USING AN APPROPRIATE BUFFER FUNCTION
-
-					CREATE  A TEMPORRARY LEXEME BUFFER HERE;
-				lex_buf = b_allocate(...);
-				.RETRACT getc_offset to the MARK SET PREVIOUSLY AT THE BEGINNING OF THE LEXEME AND
-					.USING b_getc() COPY THE LEXEME BETWEEN lexstart AND lexend FROM THE INPUT BUFFER INTO lex_buf USING b_addc(...),
-					.WHEN VID(KEYWORDS INCLUDED), FPL OR IL IS RECOGNIZED
-					.YOU MUST CALL THE ACCEPTING FUNCTION USING THE ARRAY aa_table, WHICH
-					.CONTAINS POINTERS TO FUNCTIONS.THE ARRAY INDEX OF THE FUNCTION TO BE
-					.CALLED IS STORED IN THE VARIABLE state.
-					.YOU ARE NOT ALLOWED TO CALL ANY OF THE ACCEPTING FUNCTIONS BY NAME.
-					.THE ARGUMENT TO THE FUNCTION IS THE STRING STORED IN lex_buf.
-					....
-					b_free(lex_buf);
-				return t;
-			}//end while(1)
-			IN A CASE OF RUNTIME ERROR, THE FUNCTION MUST STORE
-				A NON- NEGATIVE NUMBER INTO THE GLOBAL VARIABLE scerrnum
-				AND RETURN A RUN TIME ERROR TOKEN.THE RUN TIME ERROR TOKEN ATTRIBUTE
-				MUST BE THE STRING "RUN TIME ERROR: "
-		}
+	/*THIS FUNCTION RETURNS THE COLUMN NUMBER IN THE TRANSITION
+	TABLE st_table FOR THE INPUT CHARACTER c.
+	SOME COLUMNS MAY REPRESENT A CHARACTER CLASS .
+	FOR EXAMPLE IF COLUMN 2 REPRESENTS[A - Za - z]
+	THE FUNCTION RETURNS 2 EVERY TIME c IS ONE
+	OF THE LETTERS A, B, ..., Z, a, b...z.
+	PAY ATTENTION THAT THE FIRST COLOMN IN THE TT IS 0 (has index 0)
+	*/
+	return val;
+}
 
 
-		DO NOT MODIFY THE CODE OF THIS FUNCTION
-			YOU CAN REMOVE THE COMMENTS
-*/
-			int get_next_state(int state, char c, int *accept)
-			{
-				int col;
-				int next;
-				col = char_class(c);
-				next = st_table[state][col];
+int get_next_state(int state, char c, int *accept)
+{
+	int col;
+	int next;
+	col = char_class(c);
+	next = st_table[state][col];
 #ifdef DEBUG
-				printf("Input symbol: %c Row: %d Column: %d Next: %d \n", c, state, col, next);
+	printf("Input symbol: %c Row: %d Column: %d Next: %d \n", c, state, col, next);
 #endif
-				/*
-				The assert(int test) macro can be used to add run-time diagnostic to programs
-				and to "defend" from producing unexpected results.
-				assert() is a macro that expands to an if statement;
-				if test evaluates to false (zero) , assert aborts the program
-				(by calling abort()) and sends the following message on stderr:
-
-				Assertion failed: test, file filename, line linenum
-
-				The filename and linenum listed in the message are the source file name
-				and line number where the assert macro appears.
-				If you place the #define NDEBUG directive ("no debugging")
-				in the source code before the #include <assert.h> directive,
-				the effect is to comment out the assert statement.
-				*/
-				assert(next != IS);
-
-				/*
-				The other way to include diagnostics in a program is to use
-				conditional preprocessing as shown bellow. It allows the programmer
-				to send more details describing the run-time problem.
-				Once the program is tested thoroughly #define DEBUG is commented out
-				or #undef DEBUF is used - see the top of the file.
-				*/
+	assert(next != IS);
 #ifdef DEBUG
-				if (next == IS) {
-					printf("Scanner Error: Illegal state:\n");
-					printf("Input symbol: %c Row: %d Column: %d\n", c, state, col);
-					exit(1);
-				}
+	if (next == IS) {
+		printf("Scanner Error: Illegal state:\n");
+		printf("Input symbol: %c Row: %d Column: %d\n", c, state, col);
+		exit(1);
+	}
 #endif
-				*accept = as_table[next];
-				return next;
-			}
+	*accept = as_table[next];
+	return next;
+}
 
-			int char_class(char c)
-			{
-				int val;
-
-				THIS FUNCTION RETURNS THE COLUMN NUMBER IN THE TRANSITION
-					TABLE st_table FOR THE INPUT CHARACTER c.
-					SOME COLUMNS MAY REPRESENT A CHARACTER CLASS .
-					FOR EXAMPLE IF COLUMN 2 REPRESENTS[A - Za - z]
-					THE FUNCTION RETURNS 2 EVERY TIME c IS ONE
-					OF THE LETTERS A, B, ..., Z, a, b...z.
-					PAY ATTENTION THAT THE FIRST COLOMN IN THE TT IS 0 (has index 0)
-
-					return val;
-			}
-
-
-
-			HERE YOU WRITE THE DEFINITIONS FOR YOUR ACCEPTING FUNCTIONS.
-				************************************************************
-
-				ACCEPTING FUNCTION FOR THE arithmentic variable identifier AND keywords(VID - AVID / KW)
-				REPLACE XX WITH THE CORRESPONDING ACCEPTING STATE NUMBER
-
-				Token aa_funcXX(char lexeme[]) {
-
-				WHEN CALLED THE FUNCTION MUST
-					1. CHECK IF THE LEXEME IS A KEYWORD.
-					IF YES, IT MUST RETURN A TOKEN WITH THE CORRESPONDING ATTRIBUTE
-					FOR THE KEYWORD.THE ATTRIBUTE CODE FOR THE KEYWORD
-					IS ITS INDEX IN THE KEYWORD LOOKUP TABLE(kw_table in table.h).
-					IF THE LEXEME IS NOT A KEYWORD, GO TO STEP 2.
-
-					2. SET a AVID TOKEN.
-					IF THE lexeme IS LONGER than VID_LEN(see token.h) CHARACTERS,
-					ONLY FIRST VID_LEN CHARACTERS ARE STORED
-					INTO THE VARIABLE ATTRIBUTE ARRAY vid_lex[](see token.h) .
-					ADD \0 AT THE END TO MAKE A C - type STRING.
-					return t;
-			}
-
-			ACCEPTING FUNCTION FOR THE string variable identifier(VID - SVID)
-				REPLACE XX WITH THE CORRESPONDING ACCEPTING STATE NUMBER
-
-				Token aa_funcXX(char lexeme[]) {
-
-				WHEN CALLED THE FUNCTION MUST
-					1. SET a SVID TOKEN.
-					IF THE lexeme IS LONGER than VID_LEN characters,
-					ONLY FIRST VID_LEN - 1 CHARACTERS ARE STORED
-					INTO THE VARIABLE ATTRIBUTE ARRAY vid_lex[],
-					AND THEN THE $ CHARACTER IS APPENDED TO THE NAME.
-					ADD \0 AT THE END TO MAKE A C - type STRING.
-
-					return t;
-			}
-
-			ACCEPTING FUNCTION FOR THE floating - point literal(FPL)
-
-				Token aa_funcXX(char lexeme[]) {
-
-				THE FUNCTION MUST CONVERT THE LEXEME TO A FLOATING POINT VALUE,
-					WHICH IS THE ATTRIBUTE FOR THE TOKEN.
-					THE VALUE MUST BE IN THE SAME RANGE AS the value of 4 - byte float in C.
-					IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
-					THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
-					than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
-					STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
-					err_lex C - type string.
-					BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
-					return t;
-			}
-
-			ACCEPTING FUNCTION FOR THE integer literal(IL) - decimal constant(DIL)
-
-				Token aa_funcXX(char lexeme[]) {
-
-				THE FUNCTION MUST CONVERT THE LEXEME REPRESENTING A DECIMAL CONSTANT
-					TO A DECIMAL INTEGER VALUE, WHICH IS THE ATTRIBUTE FOR THE TOKEN.
-					THE VALUE MUST BE IN THE SAME RANGE AS the value of 2 - byte integer in C.
-					IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
-					THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
-					than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
-					STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
-					err_lex C - type string.
-					BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
-					return t;
-			}
-
-			ACCEPTING FUNCTION FOR THE string literal(SL)
-
-				Token aa_funcXX(char lexeme[]) {
-
-				THE FUNCTION MUST STORE THE lexeme PARAMETER CONTENT INTO THE STRING LITERAL TABLE(str_LTBL)
-					FIRST THE ATTRIBUTE FOR THE TOKEN MUST BE SET.
-					THE ATTRIBUTE OF THE STRING TOKEN IS THE OFFSET FROM
-					THE BEGINNING OF THE str_LTBL char buffer TO THE LOCATION
-					WHERE THE FIRST CHAR OF THE lexeme CONTENT WILL BE ADDED TO THE BUFFER.
-					USING b_addc(..)COPY THE lexeme content INTO str_LTBL.
-					THE OPENING AND CLOSING " MUST BE IGNORED DURING THE COPING PROCESS. 
-					ADD '\0' AT THE END MAKE THE STRING C - type string
-					IF THE STING lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
-					SET THE STRING TOKEN CODE.
-					return t;
-			}
-
-			ACCEPTING FUNCTION FOR THE ERROR TOKEN
-
-				Token aa_funcXX(char lexeme[]) {
-
-				THE FUNCTION SETS THE ERROR TOKEN.lexeme[] CONTAINS THE ERROR
-					THE ATTRIBUTE OF THE ERROR TOKEN IS THE lexeme CONTENT ITSELF
-					AND IT MUST BE STORED in err_lex.IF THE ERROR lexeme IS LONGER
-					than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
-					STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
-					err_lex C - type string.
-					IF THE ERROR lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
-					BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
-					return t;
-			}
-
-			HERE YOU WRITE YOUR ADDITIONAL FUNCTIONS(IF ANY).
-				FOR EXAMPLE
-
-				int iskeyword(char * kw_lexeme) {}
+Token aa_func02(char *lexeme) {}	/* VID AVID/KW */
+Token aa_func03(char *lexeme) {}	/* VID SVID */
+Token aa_func05(char *lexeme) {}	/* DIL */
+Token aa_func08(char *lexeme) {}	/* FPL */
+Token aa_func11(char *lexeme) {}	/* ES */
+Token aa_func12(char *lexeme) {}	/* ER */
