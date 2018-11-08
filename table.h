@@ -53,18 +53,18 @@
 
 /*transition table - type of states defined in separate table */
 int  st_table[][TABLE_COLUMNS] = {
-	/* State 0 */	{ 1 , 6 , 4 , ES , ES , ES , 9 , },
-	/* State 1 */	{ 1 , 1 , 1 , ES , 3 , 2 , 2 ,  },
-	/* State 2 */	{ IS , IS , IS , IS , IS , IS , IS , },
-	/* State 3 */	{ IS , IS , IS , IS , IS , IS , IS , },
-	/* State 4 */	{ ES , 4 , 4 , 7 , 5 , 5 , 5 ,  },
-	/* State 5 */	{ IS , IS , IS , IS , IS , IS , IS , },
-	/* State 6 */	{ ES , 0 , ES , 7 , ES , 5 , 5 , },
-	/* State 7 */	{ ES , 7 , 7 , ES , 8 , 8 , 8 , },
-	/* State 8 */	{ IS , IS , IS , IS , IS , IS , IS , },
+	/* State 0 */	{ 1 , 6 , 4 , ES , ES , ES , 9 , ES},
+	/* State 1 */	{ 1 , 1 , 1 , 2 , 3 , 2 , 2 , 2 },
+	/* State 2 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
+	/* State 3 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
+	/* State 4 */	{ ES , 4 , 4 , 7 , 5 , 5 , ER , ER},
+	/* State 5 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
+	/* State 6 */	{ ES , 6 , ES , 7 , ES , 5 , ES , 5},
+	/* State 7 */	{ 8 , 7 , 7 , 8 , 8 , 8 , ES , 8},
+	/* State 8 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
 	/* State 9 */	{ 9 , 9 , 9 , 9 , 9 , 9 , ER , ER }, 
-	/* State 10 */	{ IS , IS , IS , IS , IS , IS , IS , },
-	/* State 11 */	{ IS , IS , IS , IS , IS , IS , IS , },
+	/* State 10 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
+	/* State 11 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
 	/* State 12 */	/*{ IS , IS , IS , IS , IS , IS , IS , },*/
 };
 
@@ -99,6 +99,7 @@ Token aa_func02(char *lexeme);	/* VID AVID/KW */
 Token aa_func03(char *lexeme);	/* VID SVID */
 Token aa_func05(char *lexeme);	/* DIL */
 Token aa_func08(char *lexeme);	/* FPL */
+Token aa_func10(char *lexeme);	/* SL */
 Token aa_func11(char *lexeme);	/* ES */
 /*Token aa_func12(char *lexeme);/* ER */
 
@@ -126,7 +127,7 @@ PTR_AAF aa_table[] = {
 	/* State 7 */	NULL,
 	/* State 8 */	aa_func08,
 	/* State 9 */	NULL,
-	/* State 10 */
+	/* State 10 */	aa_func10,
 	/* State 11 */	aa_func11,
 	/* State 12 */	/*aa_func12*/
 };

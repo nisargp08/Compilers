@@ -278,7 +278,7 @@ Token malar_next_token(void) {
 							}
 						}
 						/* This is for setting the getcoffset to the element prior to '\0' */
-						while (c = b_getc(sc_buf) != BACKSLASHZERO) {
+						while ((c = b_getc(sc_buf)) != BACKSLASHZERO) {
 							c = b_getc(sc_buf);
 						}
 						b_retract(sc_buf);
@@ -304,9 +304,9 @@ Token malar_next_token(void) {
 						for (i = lexstart; i < lexend; i++) {
 							b_addc(str_LTBL, b_getc(sc_buf));
 						}
-						/* For getting last '"' to mark the completion of the string*/
-						b_getc(sc_buf);
 					}
+					/* For getting last '"' to mark the completion of the string*/
+					b_getc(sc_buf);
 					/* Adding '\0' at the end to make it a C type string*/
 					b_addc(str_LTBL, '\0');
 					/* Returning token */
@@ -417,6 +417,23 @@ int get_next_state(int state, char c, int *accept)
 	return next;
 }
 
+/********************************************************************************************************************************
+Purpose				:	The purpose of this function is to firstly check when called if the lexeme is a keyword ,
+						if the lexeme is a keyword , then the attribute is set and the lexeme is stored into the 
+						Kwt_id field , If it is not a keyword , set the code to Arithmetic VID and then the lexeme is stored
+						into the VID_lex attribute.
+Author				:	Nisarg Patel / Divy Shah
+History/Versions	:	2018/10/07
+Called Function		:	iskeyword() 
+Parameters			:	char lexeme[] : The characters that are to be checked
+Return Value		:	Token : Token with the code and the attribute set is returned
+Algorithm			:	- First we check to make sure if the lexeme is a keyword ,
+						- If it is a keyword , Set the code and the attribute and return the token
+						- Otherwise Set the code to AVID 
+						- Check if the length of the is greater than VID_LEN 
+						- If yes , Store the first 8 characters into the attribute
+						- Otherwise store the entire lexeme into the attribute
+*******************************************************************************************************************************/
 Token aa_func02(char lexeme[])
 {
 	/*Varables used are declared.*/
@@ -469,6 +486,21 @@ ADD \0 AT THE END TO MAKE A C - type STRING.
 return t;
 }
 */
+/********************************************************************************************************************************
+Purpose				:	The purpose of this function is to set the code to SVID when called . Then the lexeme is store into 
+						VID_LEX attribute.
+Author				:	Nisarg Patel / Divy Shah
+History/Versions	:	2018/10/07
+Called Function		:	-
+Parameters			:	char lexeme[] : The characters that are to be checked
+Return Value		:	Token : Token with the code and the attribute set is returned
+Algorithm			:	- First we set the code to the SVID for svid token
+						- Check if the length of the is greater than VID_LEN 
+						- If yes , Store the first 8 characters into the attribute
+						- Append the $ and the '\0' at the end of the string 
+						- Otherwise store the entire lexeme into the attribute
+							and set the '\0' at the end.
+*******************************************************************************************************************************/
 Token aa_func03(char lexeme[]) {
 
 	/*Varables used are declared.*/
@@ -493,7 +525,6 @@ Token aa_func03(char lexeme[]) {
 		{
 			t.attribute.vid_lex[i] = lexeme[i];
 		}
-		//t.attribute.vid_lex[i] = '$';	/*Appends the $ symbol at the end.*/
 		t.attribute.vid_lex[i] = '\0';     /*Adds the line terminator*/
 	}
 	return t; /*Returns the token*/
@@ -518,12 +549,27 @@ return t;
 }
 
 */
+/********************************************************************************************************************************
+Purpose				:	The purpose of this function is to process thre Floating point Literal , It converts the lexeme into 
+						floating point values and set it as the attribute.
+Author				:	Nisarg Patel / Divy Shah
+History/Versions	:	2018/10/07
+Called Function		:	atof()
+Parameters			:	char lexeme[] : The characters that are to be checked
+Return Value		:	Token : Token with the code and the attribute set is returned
+Algorithm			:	- First we convert the lexeme into a floating point value
+						- Check if the the calue is in the range of positive and negative floating point number
+- Check if the length of the is greater than VID_LEN
+- If yes , Store the first 8 characters into the attribute
+- Append the $ and the '\0' at the end of the string
+- Otherwise store the entire lexeme into the attribute
+and set the '\0' at the end.
+*******************************************************************************************************************************/
 Token aa_func08(char lexeme[]) {
 
 	/*Varables used are declared.*/
 	Token t;
 	double f = 0.0;
-	int i = 0;
 
 	/*Now convert the string to float*/
 	f = atof(lexeme);
@@ -624,6 +670,7 @@ Token aa_func10(char lexeme[]) {
 
 	/*The attribute  of the string token is the offset from the beginning to the location*/
 	t.attribute.str_offset = b_getcoffset(str_LTBL);
+	//printf("\n attribute : %d \n",b_getcoffset(str_LTBL));
 	t.code = STR_T; /*The code is set to the String token code*/
 
 					/*Loop to iteratre through the lexeme*/
@@ -700,17 +747,15 @@ Token aa_func11(char lexeme[]) {
 }
 
 
-/*Token aa_func12(char lexeme[]) {
-
+Token aa_func12(char lexeme[]) {
 	/*Varables used are declared.*/
-	/*Token t;
-	t.code = ERR_T;
-	int i = 0;
+	Token t;
+
+	/*We call the */
+	t = aa_func11(lexeme); 
+	b_retract(sc_buf);
 	return t;
-
-
-
-}*/
+}
 int iskeyword(char * kw_lexeme) {
 	int i;
 	/*For loop to compare the lexeme to the Keyword*/
