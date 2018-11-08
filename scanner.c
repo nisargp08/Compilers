@@ -83,12 +83,12 @@ Token malar_next_token(void) {
 			c = b_getc(sc_buf);
 
 			/* Part 1: Implementation of token driven scanner */
-			if (c == (unsigned char)SEOF) {
+			if (c == BACKSLASHZERO) {
 				t.code = SEOF_T;
 				t.attribute.seof = SEOF1;
 				return t;
 			}
-			if (c == BACKSLASHZERO) {
+			if (c == (unsigned char)SEOF) {
 				t.code = SEOF_T;
 				t.attribute.seof = SEOF2;
 				return t;
@@ -100,50 +100,6 @@ Token malar_next_token(void) {
 					line++;
 				}
 				continue;
-			}
-			/* DFA Implementation - When the character is an alphabet or a number */
-			if (isalnum(c)) {
-				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf));
-				c = b_getc(sc_buf);
-				state = get_next_state(state, c, &accept);
-				while (accept == NOAS) {
-					state = get_next_state(state, c, &accept);
-					if (accept != NOAS) {
-						break;
-					}
-					c = b_getc(sc_buf);
-				}
-
-				if (accept == ASWR) {
-					b_retract(sc_buf);
-				}
-				lexend = b_getcoffset(sc_buf);
-				lex_buf = b_allocate((lexend - lexstart), 0, 'f');
-
-				if (lex_buf == NULL) {
-					char runtimeErrorString[] = "RUN TIME ERROR: ";
-					t.code = RTE_T;
-					for (i = 0; i < strlen(runtimeErrorString); i++) {
-						t.attribute.err_lex[i] = runtimeErrorString[i];
-					}
-					t.attribute.err_lex[i] = '\0';
-					scerrnum = 1;
-					free(lex_buf);
-				}
-				b_reset(sc_buf);
-				for (i = lexstart; i < lexend; i++) {
-					c = b_getc(sc_buf);
-					b_addc(lex_buf, c);
-				}
-				b_addc(lex_buf, '\0');
-				aa_table[state]((lex_buf));
-				b_free(lex_buf);
-				return t;
-			}
-			t.code = ERR_T;
-			t.attribute.err_lex[0] = c;
-			t.attribute.err_lex[1] = '\0';
-			return t;
 			}
 
 			/* Switch case begins */
@@ -353,9 +309,50 @@ Token malar_next_token(void) {
 					}
 					/* Adding '\0' at the end to make it a C type string*/
 					b_addc(str_LTBL, '\0');
+					/* Returning token */
 					return t;
 				}
-			default :
+			default:
+				/* DFA Implementation */
+				if (isalnum(c)) {
+					lexstart = b_mark(sc_buf, b_getcoffset(sc_buf) - 1);
+					state = get_next_state(state, c, &accept);
+
+					while (accept == NOAS) {
+						c = b_getc(sc_buf);
+						state = get_next_state(state, c, &accept);
+					}
+					if (accept == ASWR) {
+						b_retract(sc_buf);
+					}
+					lexend = b_getcoffset(sc_buf);
+					b_retract(sc_buf);
+					lex_buf = b_allocate((lexend - lexstart) + 1, 0, 'f');
+
+					if (lex_buf == NULL) {
+						char runtimeErrorString[] = "RUN TIME ERROR: ";
+						t.code = RTE_T;
+						for (i = 0; i < strlen(runtimeErrorString); i++) {
+							t.attribute.err_lex[i] = runtimeErrorString[i];
+						}
+						t.attribute.err_lex[i] = BACKSLASHZERO;
+						scerrnum = 1;
+						free(lex_buf);
+						return t;
+					}
+					b_reset(sc_buf);
+					for (i = 0; i < lexend - lexstart; i++) {
+						c = b_getc(sc_buf);
+						b_addc(lex_buf, c);
+					}
+					b_addc(lex_buf,BACKSLASHZERO);
+
+					t = aa_table[state](b_location(lex_buf,0));
+					b_free(lex_buf);
+					return t;
+				}/*isalnum if ends*/
+
+				/* if invalid character is found then error token is returned here*/
 				t.code = ERR_T;
 				t.attribute.err_lex[0] = c;
 				t.attribute.err_lex[1] = BACKSLASHZERO;
@@ -367,24 +364,34 @@ Token malar_next_token(void) {
 }/*Function ends*/
 
 static int char_class(char c) {
-	int val = 0;
-	/* State 2 */
+	int val;
+	//define constatns
+	/* Column One - [a-zA-z]*/
 	if (isalpha(c)) {
-		val = 2;
+		val = ZERO;
 	}
-	/* State 5 */
 	else if (isdigit(c)) {
-		val = 5;
+		if (c == 'ZERO') {
+			val = ONE;
+		}
+		else
+			val = TWO;
 	}
-
-	/*THIS FUNCTION RETURNS THE COLUMN NUMBER IN THE TRANSITION
-	TABLE st_table FOR THE INPUT CHARACTER c.
-	SOME COLUMNS MAY REPRESENT A CHARACTER CLASS .
-	FOR EXAMPLE IF COLUMN 2 REPRESENTS[A - Za - z]
-	THE FUNCTION RETURNS 2 EVERY TIME c IS ONE
-	OF THE LETTERS A, B, ..., Z, a, b...z.
-	PAY ATTENTION THAT THE FIRST COLOMN IN THE TT IS 0 (has index 0)
-	*/
+	else if (c == '.') {
+		val = THREE;
+	}
+	else if (c == '$') {
+		val = FOUR;
+	}
+	else if (c == '"') {
+		val = SIX;
+	}
+	else if (c == SEOF) {
+		val = SEVEN;
+	}
+	/* Others */
+	else
+		val = FIVE;
 	return val;
 }
 
@@ -404,15 +411,315 @@ int get_next_state(int state, char c, int *accept)
 		printf("Scanner Error: Illegal state:\n");
 		printf("Input symbol: %c Row: %d Column: %d\n", c, state, col);
 		exit(1);
-	}
+}
 #endif
 	*accept = as_table[next];
 	return next;
 }
 
-Token aa_func02(char *lexeme) {}	/* VID AVID/KW */
-Token aa_func03(char *lexeme) {}	/* VID SVID */
-Token aa_func05(char *lexeme) {}	/* DIL */
-Token aa_func08(char *lexeme) {}	/* FPL */
-Token aa_func11(char *lexeme) {}	/* ES */
-Token aa_func12(char *lexeme) {}	/* ER */
+Token aa_func02(char lexeme[])
+{
+	/*Varables used are declared.*/
+	Token t;
+	int i;
+
+	/*Calls the iskeyword method to check if the given lexeme is a keyword*/
+	if (iskeyword(lexeme) != RT_FAIL_1)
+	{
+		t.code = KW_T;	/*If it is a keyword , then set the code and the attrivutes for it*/
+		t.attribute.kwt_idx = iskeyword(lexeme);
+		return t;   /*Returns the token after setting values.*/
+	}
+
+	/*If it is not a keyword , set the AVID Token*/
+	t.code = AVID_T;	/*Sets the token code for arithmetic VID*/
+	if (strlen(lexeme) > VID_LEN)   /*Check if the lenght of the lexeme is longer than VID_LEN(8)*/
+	{
+		for (i = 0; i < VID_LEN; i++)	/*If yes , we only count the first 8 letters*/
+		{
+			t.attribute.vid_lex[i] = lexeme[i];
+		}
+		t.attribute.vid_lex[VID_LEN] = '\0';	/*Adds the line terminator*/
+	}
+	else
+	{
+		/*If the length of the lexeme is not longer than VID_LEN(8) */
+		for (i = 0; i < strlen(lexeme); i++) /*Adds the characters and appends a line terminator at the end*/
+		{
+			t.attribute.vid_lex[i] = lexeme[i];
+		}
+		t.attribute.vid_lex[i] = '\0';
+	}
+	return t;
+}
+/*
+ACCEPTING FUNCTION FOR THE string variable identifier(VID - SVID)
+REPLACE XX WITH THE CORRESPONDING ACCEPTING STATE NUMBER
+
+Token aa_funcXX(char lexeme[]) {
+
+WHEN CALLED THE FUNCTION MUST
+1. SET a SVID TOKEN.
+IF THE lexeme IS 1500LONGER than VID_LEN characters,
+ONLY FIRST VID_LEN - 1 CHARACTERS ARE STORED
+INTO THE VARIABLE ATTRIBUTE ARRAY vid_lex[],
+AND THEN THE $ CHARACTER IS APPENDED TO THE NAME.
+ADD \0 AT THE END TO MAKE A C - type STRING.
+
+return t;
+}
+*/
+Token aa_func03(char lexeme[]) {
+
+	/*Varables used are declared.*/
+	Token t;
+	int i;
+
+	/*Sets the Token code to SVID_T */
+	t.code = SVID_T;
+
+	if (strlen(lexeme) > VID_LEN)
+	{
+		for (i = 0; i < VID_LEN - 1; i++)	/*If yes , we only count the VID_LEN - 1 characters*/
+		{
+			t.attribute.vid_lex[i] = lexeme[i];
+		}
+		t.attribute.vid_lex[i] = '$';	/*Appends the $ symbol at the end.*/
+		t.attribute.vid_lex[i + 1] = '\0';     /*Adds the line terminator*/
+	}
+	else
+	{
+		for (i = 0; i < strlen(lexeme); i++) /*Adds the characters and appends a line terminator at the end*/
+		{
+			t.attribute.vid_lex[i] = lexeme[i];
+		}
+		//t.attribute.vid_lex[i] = '$';	/*Appends the $ symbol at the end.*/
+		t.attribute.vid_lex[i] = '\0';     /*Adds the line terminator*/
+	}
+	return t; /*Returns the token*/
+}
+
+
+/*
+ACCEPTING FUNCTION FOR THE floating - point literal(FPL)
+
+Token aa_funcXX(char lexeme[]) {
+
+THE FUNCTION MUST CONVERT THE LEXEME TO A FLOATING POINT VALUE,
+WHICH IS THE ATTRIBUTE FOR THE TOKEN.
+THE VALUE MUST BE IN THE SAME RANGE AS the value of 4 - byte float in C.
+IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
+THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
+than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
+STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
+err_lex C - type string.
+BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
+return t;
+}
+
+*/
+Token aa_func08(char lexeme[]) {
+
+	/*Varables used are declared.*/
+	Token t;
+	double f = 0.0;
+	int i = 0;
+
+	/*Now convert the string to float*/
+	f = atof(lexeme);
+
+	/*Check that the value of the lexeme converted to float is in range */
+	if ((f > 0 && (f > FLT_MAX || f < FLT_MIN)) || (f < 0 && (f < -FLT_MAX || f > -FLT_MIN))) {
+		t = aa_func11(lexeme);
+	}
+	else {
+		t.code = FPL_T; /*The Error token value is set to the token code*/
+		t.attribute.flt_value = f;	/*The attribute is the value of the lexeme */
+	}
+	return t;
+}
+/*
+ACCEPTING FUNCTION FOR THE integer literal(IL) - decimal constant(DIL)
+
+Token aa_funcXX(char lexeme[]) {
+
+THE FUNCTION MUST CONVERT THE LEXEME REPRESENTING A DECIMAL CONSTANT
+TO A DECIMAL INTEGER VALUE, WHICH IS THE ATTRIBUTE FOR THE TOKEN.
+THE VALUE MUST BE IN THE SAME RANGE AS the value of 2 - byte integer in C.
+IN CASE OF ERROR(OUT OF RANGE) THE FUNCTION MUST RETURN ERROR TOKEN
+THE ERROR TOKEN ATTRIBUTE IS  lexeme.IF THE ERROR lexeme IS LONGER
+than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
+STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
+err_lex C - type string.
+BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
+return t;
+}
+*/
+Token aa_func05(char lexeme[]) {
+
+	/*Varables used are declared.*/
+	Token t;
+	int l = 0;
+	long i = 0;
+
+	/*Now lets convert it to decimal constant*/
+	l = atol(lexeme);
+
+	if (l > SHRT_MAX || l < SHRT_MIN)
+	{
+		t.code = ERR_T; /*The Error token value is set to the token code*/
+		t.attribute.int_value = (short)l;	/*The attribute is the value of the lexeme */
+
+		if (strlen(lexeme) > ERR_LEN)
+		{
+			for (i = 0; i < ERR_LEN - 3; i++)	/*If yes , we only count the ERR_LEN - 3 characters*/
+			{
+				t.attribute.err_lex[i] = lexeme[i];
+			}
+			t.attribute.err_lex[i] = '.';	/* Add 3 dots (.) at the end*/
+			t.attribute.err_lex[i + 1] = '.';
+			t.attribute.err_lex[i + 2] = '.';
+			t.attribute.err_lex[i + 3] = '\0'; /*Adds the line terminator*/
+		}
+		else
+		{	/* Otherwise store the error into err_lex*/
+			for (i = 0; i < strlen(lexeme); i++)
+			{
+				t.attribute.err_lex[i] = lexeme[i];
+			}
+			t.attribute.err_lex[i] = '\0';/*Adds the line terminator*/
+		}
+	}
+	else {
+		t.code = INL_T;
+		t.attribute.int_value = (short)l;
+	}
+	return t;
+}
+/*
+ACCEPTING FUNCTION FOR THE string literal(SL)
+
+Token aa_funcXX(char lexeme[]) {
+
+THE FUNCTION MUST STORE THE lexeme PARAMETER CONTENT INTO THE STRING LITERAL TABLE(str_LTBL)
+FIRST THE ATTRIBUTE FOR THE TOKEN MUST BE SET.
+THE ATTRIBUTE OF THE STRING TOKEN IS THE OFFSET FROM
+THE BEGINNING OF THE str_LTBL char buffer TO THE LOCATION
+WHERE THE FIRST CHAR OF THE lexeme CONTENT WILL BE ADDED TO THE BUFFER.
+USING b_addc(..)COPY THE lexeme content INTO str_LTBL.
+THE OPENING AND CLOSING " MUST BE IGNORED DURING THE COPING PROCESS.
+ADD '\0' AT THE END MAKE THE STRING C - type string
+IF THE STING lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
+SET THE STRING TOKEN CODE.
+return t;
+}
+
+*/
+Token aa_func10(char lexeme[]) {
+
+	/*Varables used are declared.*/
+	Token t;
+	int i = 0;
+
+
+	/*The attribute  of the string token is the offset from the beginning to the location*/
+	t.attribute.str_offset = b_getcoffset(str_LTBL);
+	t.code = STR_T; /*The code is set to the String token code*/
+
+					/*Loop to iteratre through the lexeme*/
+	for (i = 0; i < strlen(lexeme); i++)
+	{
+		/*If a double quote is acquired , do not add it to the buffer*/
+		if (lexeme[i] == '"')
+		{
+			continue;
+		}
+		if (lexeme[i] == '\0')
+		{
+			line++;
+		}
+		b_addc(str_LTBL, lexeme[i]);
+	}
+	b_addc(str_LTBL, '\0');
+	line++;
+	return t;
+}
+
+
+/*
+ACCEPTING FUNCTION FOR THE ERROR TOKEN
+
+Token aa_funcXX(char lexeme[]) {
+
+THE FUNCTION SETS THE ERROR TOKEN.lexeme[] CONTAINS THE ERROR
+THE ATTRIBUTE OF THE ERROR TOKEN IS THE lexeme CONTENT ITSELF
+AND IT MUST BE STORED in err_lex.IF THE ERROR lexeme IS LONGER
+than ERR_LEN characters, ONLY THE FIRST ERR_LEN - 3 characters ARE
+STORED IN err_lex.THEN THREE DOTS ... ARE ADDED TO THE END OF THE
+err_lex C - type string.
+IF THE ERROR lexeme CONTAINS line terminators THE line COUNTER MUST BE INCTREMENTED.
+BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
+return t;
+}
+HERE YOU WRITE YOUR ADDITIONAL FUNCTIONS(IF ANY).
+FOR EXAMPLE
+
+*/
+Token aa_func11(char lexeme[]) {
+
+	/*Varables used are declared.*/
+	Token t;
+	int i = 0;
+
+	/*set the code to the error token*/
+	t.code = ERR_T;
+
+	if (strlen(lexeme) > ERR_LEN)
+	{
+		for (i = 0; i < ERR_LEN - 3; i++)
+		{
+			t.attribute.err_lex[i] = lexeme[i];
+		}
+		t.attribute.err_lex[i] = '.';	/* Add 3 dots (.) at the end*/
+		t.attribute.err_lex[i + 1] = '.';
+		t.attribute.err_lex[i + 2] = '.';
+		t.attribute.err_lex[i + 3] = '\0'; /*Adds the line terminator*/
+		line++;
+	}
+	else
+	{
+		/* Otherwise store the error into err_lex*/
+		for (i = 0; i < strlen(lexeme); i++)
+		{
+			t.attribute.err_lex[i] = lexeme[i];
+		}
+		t.attribute.err_lex[i] = '\0';/*Adds the line terminator*/
+		line++;
+	}
+	return t;
+}
+
+
+/*Token aa_func12(char lexeme[]) {
+
+	/*Varables used are declared.*/
+	/*Token t;
+	t.code = ERR_T;
+	int i = 0;
+	return t;
+
+
+
+}*/
+int iskeyword(char * kw_lexeme) {
+	int i;
+	/*For loop to compare the lexeme to the Keyword*/
+	for (i = 0; i < KWT_SIZE; i++)
+	{
+		if (strcmp(kw_lexeme, kw_table[i]) == 0)	/*If it is found , set the attributes and return the token */
+		{
+			return i;
+		}
+	}
+	return RT_FAIL_1;
+}

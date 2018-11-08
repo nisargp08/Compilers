@@ -609,9 +609,9 @@ char * b_location(Buffer * const pBD, short loc_offset) {
 	if (pBD == NULL) {
 		return NULL;
 	}
-	else if (loc_offset <= b_getcoffset(pBD)) {
+	/*else if (loc_offset <= b_getcoffset(pBD)) {
 		return NULL;
-	}
+	}*/
 	return pBD->cb_head + loc_offset;
 }
 
