@@ -234,10 +234,25 @@ Token malar_next_token(void) {
 				}
 				/* When pattern is not matching meaning only one '!' was found.So returning error token and storing the elemennt in err_lex array*/
 				else {
+					/* Retracting the getcoffset back to marked position*/
 					b_reset(sc_buf);
+					/* Getting one character to store in err_lex array */
+					c = b_getc(sc_buf);
 					t.code = ERR_T;
-					t.attribute.err_lex[0] = c;
-					t.attribute.err_lex[1] = BACKSLASHZERO;
+					t.attribute.err_lex[0] = '!';
+					t.attribute.err_lex[1] = c;
+					t.attribute.err_lex[2] = BACKSLASHZERO;
+					/* To iterate to the end of the line */
+					while (c != '\n' || c == BACKSLASHZERO) {
+						/* If space is encountered skip it*/
+						if (isspace(c)) {
+							c = b_getc(sc_buf);
+							continue;
+						}
+						/*Else get another character*/
+						c = b_getc(sc_buf);
+					}
+					/*Return token*/
 					return t;
 				}
 

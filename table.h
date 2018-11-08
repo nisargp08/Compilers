@@ -84,7 +84,7 @@ int as_table[] = {
 	/* State 7 */	NOAS,
 	/* State 8 */	ASWR,
 	/* State 9 */	NOAS,
-	/* State 10 */
+	/* State 10 */	ASNR,
 	/* State 11 */	ASNR,
 	/* State 12 */	ASWR
 };
