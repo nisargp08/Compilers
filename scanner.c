@@ -243,7 +243,7 @@ Token malar_next_token(void) {
 					t.attribute.err_lex[1] = c;
 					t.attribute.err_lex[2] = BACKSLASHZERO;
 					/* To iterate to the end of the line */
-					while (c != '\n' || c == BACKSLASHZERO) {
+					while (c != '\n' && c != BACKSLASHZERO && c != (unsigned char)SEOF) {
 						/* If space is encountered skip it*/
 						if (isspace(c)) {
 							c = b_getc(sc_buf);
@@ -252,7 +252,7 @@ Token malar_next_token(void) {
 						/*Else get another character*/
 						c = b_getc(sc_buf);
 					}
-					/*Return token*/
+					/*R*/
 					return t;
 				}
 
@@ -274,6 +274,8 @@ Token malar_next_token(void) {
 						b_reset(sc_buf);
 						/* When illegal string is greater than 20 in lenght then array will only hold the first 17 elements and ... for the rest 3 elements*/
 						if ((lexend - lexstart) > 20) {
+							/* Retarcting one character as we are storing '"' int lexical error array*/
+							b_retract(sc_buf);
 							for (i = 0; i < 17; i++) {
 								t.attribute.err_lex[i] = b_getc(sc_buf);
 							}
@@ -386,7 +388,7 @@ static int char_class(char c) {
 		val = ZERO;
 	}
 	else if (isdigit(c)) {
-		if (c == 'ZERO') {
+		if (c == CHARZERO) {
 			val = ONE;
 		}
 		else

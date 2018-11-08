@@ -38,7 +38,8 @@
 #define ER  12				/* Error state  with retract */
 #define IS -1				/* Inavalid state */
 #define BACKSLASHZERO '\0'	/*Constant for Backslash zero*/
-#define ZERO 0				/* Used to return 0th column from st_table*/
+#define ZERO 0				/* Used to return non-character 0 value in char_class function*/
+#define CHARZERO '0'		/* Used to return 0th column from st_table*/
 #define ONE 1				/* Used to return 1st column from st_table*/
 #define TWO 2				/* Used to return 2nd column from st_table*/
 #define THREE 3				/* Used to return 3rd column from st_table*/
@@ -62,7 +63,7 @@ int  st_table[][TABLE_COLUMNS] = {
 	/* State 6 */	{ ES , 6 , ES , 7 , ES , 5 , ES , 5},
 	/* State 7 */	{ 8 , 7 , 7 , 8 , 8 , 8 , ES , 8},
 	/* State 8 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
-	/* State 9 */	{ 9 , 9 , 9 , 9 , 9 , 9 , ER , ER }, 
+	/* State 9 */	{ 9 , 9 , 9 , 9 , 9 , 9 , 10 , ER }, 
 	/* State 10 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
 	/* State 11 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
 	/* State 12 */	/*{ IS , IS , IS , IS , IS , IS , IS , },*/
