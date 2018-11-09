@@ -1,14 +1,18 @@
-/* Filename: table.h
-* Transition Table and function declarations necessary for the scanner implementation
-* as required for CST8152 - Assignment #2.
-* Version: 1.18.2
-* Date: 1 October 2018
-* Provided by: Svillen Ranev
-* The file is incomplete. You are to complete it.
-***************************************************
-* REPLACE THIS HEADER WITH YOUR HEADER
-***************************************************
-*/
+/********************************************************************************************************************************
+
+Filename				:	table.h
+Compiler				:	MS Visual Studio 2015
+Author / Student name			:	Nisarg Patel,040859993
+									Divy Shah, 040859087
+Course					:	CST 8152 - Compilers
+Lab section				:	13 , 14
+Assignment				:	2
+Date					:	2018/10/8
+Professor				:	Sv. Ranev
+Purpose					:	This header file is reposnible for implementing the Transition table
+
+*******************************************************************************************************************************/
+
 
 #ifndef  TABLE_H_
 #define  TABLE_H_ 

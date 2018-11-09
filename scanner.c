@@ -1,17 +1,20 @@
-/* Filename: scanner.c
-/* PURPOSE:
-*    SCANNER.C: Functions implementing a Lexical Analyzer (Scanner)
-*    as required for CST8152, Assignment #2
-*    scanner_init() must be called before using the scanner.
-*    The file is incomplete;
-*    Provided by: Svillen Ranev
-*    Version: 1.18.2
-*    Date: 1 October 2018
-*******************************************************************
-*    REPLACE THIS HEADER WITH YOUR HEADER
-*******************************************************************
-*/
+/********************************************************************************************************************************
 
+Filename				:	scanner.c
+Compiler				:	MS Visual Studio 2015
+Author / Student name	:	Nisarg Patel,040859993
+							Divy Shah, 040859087
+Course					:	CST 8152 - Compilers
+Lab section				:	13 , 14
+Assignment				:	2
+Date					:	2018/10/8
+Professor				:	Sv. Ranev
+Purpose					:	To create a functioning Scanner for the buffer and understand the concepts.
+Functions list				:	scanner_init() , malar_next_token() , char_class() , get_next_state() ,
+								aa_func02() , aa_func03() , aa_func05() , aa_func08() , aa_func10() ,
+								aa_func11() , aa_func12()
+
+*******************************************************************************************************************************/
 /* The #define _CRT_SECURE_NO_WARNINGS should be used in MS Visual Studio projects
 * to suppress the warnings about using "unsafe" functions like fopen()
 * and standard sting library functions defined in string.h.
@@ -54,8 +57,21 @@ static int char_class(char c); /* character class function */
 static int get_next_state(int, char, int *); /* state machine function */
 static int iskeyword(char * kw_lexeme);/*static int iskeyword(char * kw_lexeme); /*keywords lookup functuion */
 
-
-											 /*Initializes scanner */
+/********************************************************************************************************************************
+Purpose			:The purpose of this function is to initialize the scanner
+Author			: Nisarg Patel / Divy Shah
+History / Versions	: 2018 / 10 / 07
+Called Function		: b_isempty() -  To check if the buffer is empty
+						b_rewind() - To rewind the buffer
+						b_clear() - This function is used to re-initialize all the variable of the buffer to 0.This will not free the space
+Parameters		: Buffer * psc_buf - The buffer
+Return Value		: EXIT_SUCCESS - When everything is successful , return 0
+Algorithm		: - Check to see if the buffer is empty
+					- If not , Rewind the buffer
+					- Clear the buffer company
+					- set the line at 1
+					- set the buffer and return zero if successful
+* ******************************************************************************************************************************/
 int scanner_init(Buffer * psc_buf) {
 	if (b_isempty(psc_buf)) return EXIT_FAILURE;/*1*/
 												/* in case the buffer has been read previously  */
@@ -67,6 +83,24 @@ int scanner_init(Buffer * psc_buf) {
 						/*   scerrnum = 0;  *//*no need - global ANSI C */
 }
 
+/********************************************************************************************************************************
+Purpose				:The purpose of this function is to process each character token by token and process and
+by calling the accepting functions if necessary
+Author				:Nisarg Patel / Divy Shah
+History/Versions		:2018/10/07
+Called Function			:b_getc() -  To get the character from the buffer
+						isspace() - to check for spaces
+						b_retract() - To get the previous character in the buffer
+						b_mark() - This function is used to return the markoffset of the buffer
+						b_reset() - This function is used to set the value of markc_offset to getc_offset
+						b_getcoffset() - This function is used to return the value of getc_offset
+						b_addc() - Will be used to add characters to the buffer
+Parameters			: void
+Return Value			: Token - Token with appropriate attributes is returned
+Algorithm			:- Scan for special characters and sets appropriate tokens
+						- Increments a counter when a new line is encountered
+						- Processes the Transition tables and calls the necessary accepting function
+*******************************************************************************************************************************/
 Token malar_next_token(void) {
 	{
 		Token t = { 0 }; /* token to return after pattern recognition. Set all structure members to 0 */
@@ -298,6 +332,23 @@ Token malar_next_token(void) {
 	}/* Second { ends here */
 }/*Function ends*/
 
+ /********************************************************************************************************************************
+ Purpose				:The purpose of this function is to return the value of the column for a partucylar character c
+ Author					:Nisarg Patel / Divy Shah
+ History/Versions		:2018/10/07
+ Called Function		:isalpha() - If it is an alphabet
+						 isdigit() - To check if it is a digit
+ Parameters				:char c : The characters that is to be checked
+ Return Value			: val - The value of the columnf for the character
+	 Algorithm			:-If the char is alphabet we return zero
+						 -If the Character is a zero digit we return one
+						 -If the Character is a nonzero digit we return two
+						 -If the character is a (.) Dot , We return three
+						 -If the character is a ($) Dollar sign , We return Four
+						 -If the character is a (") Double quote , We return six
+						 - If the character is SEOF , we return seven
+						 -For all others we return Five.
+ *******************************************************************************************************************************/
 static int char_class(char c) {
 	int val;
 	//define constatns
@@ -330,7 +381,22 @@ static int char_class(char c) {
 	return val;
 }
 
-
+/********************************************************************************************************************************
+Purpose				:The purpose of this function is to return the Suitable next state from the state table
+Author				:Ranev Sv.
+History/Versions	:	2018/10/07
+Called Function		:	assert()
+Parameters			:state: int - The current state
+					c: char - The current character
+					*accept - int - the value of the accepting state
+Return Value		:	int : the value of the next suitable state is returned
+Algorithm			: -First we get the value of col from the char_class
+						- Then we get the value of the next state depending on the values of column
+						and the state.
+						- Now check if the state is Illegeal
+						- If not , we change the value of the accepting state
+						- Return the next value
+*******************************************************************************************************************************/
 int get_next_state(int state, char c, int *accept)
 {
 	int col;
@@ -536,40 +602,34 @@ BEFORE RETURNING THE FUNCTION MUST SET THE APROPRIATE TOKEN CODE
 return t;
 }
 */
+/********************************************************************************************************************************
+Purpose					:The purpose of this function is to process the Decimal Integer Literal . When ccalled , It converts
+the lexeme into a Decimal integer value and set it as the sttribute.
+Author					:Nisarg Patel / Divy Shah
+History/Versions		:2018/10/07
+Called Function			:atol() -  converts the string argument str to a long integer
+Parameters				:char lexeme[] : The characters that are to be checked
+Return Value			:Token : Token with the code and the attribute set is returned
+Algorithm			: - First we convert the lexeme into a Long Integer value
+						- Check if the the calue is in the range of the 2Byte Integer in C
+						- Check if the length of the is greater than ERR_LEN
+						- If yes , Store the first 20 characters into the attribute including
+						- the appended 3 dots (. , . , .) and the '\0' at the end of the string
+						- Otherwise store the entire lexeme into the attribute
+						and set the '\0' at the end.
+*******************************************************************************************************************************/
 Token aa_func05(char lexeme[]) {
 
 	/*Varables used are declared.*/
 	Token t;
 	int l = 0;
-	unsigned long i = 0;
 
 	/*Now lets convert it to decimal constant*/
 	l = atol(lexeme);
 
 	if (l > SHRT_MAX || l < SHRT_MIN)
 	{
-		t.code = ERR_T; /*The Error token value is set to the token code*/
-		t.attribute.int_value = (short)l;	/*The attribute is the value of the lexeme */
-
-		if (strlen(lexeme) > ERR_LEN)
-		{
-			for (i = 0; i < ERR_LEN - 3; i++)	/*If yes , we only count the ERR_LEN - 3 characters*/
-			{
-				t.attribute.err_lex[i] = lexeme[i];
-			}
-			t.attribute.err_lex[i] = '.';	/* Add 3 dots (.) at the end*/
-			t.attribute.err_lex[i + 1] = '.';
-			t.attribute.err_lex[i + 2] = '.';
-			t.attribute.err_lex[i + 3] = '\0'; /*Adds the line terminator*/
-		}
-		else
-		{	/* Otherwise store the error into err_lex*/
-			for (i = 0; i < strlen(lexeme); i++)
-			{
-				t.attribute.err_lex[i] = lexeme[i];
-			}
-			t.attribute.err_lex[i] = '\0';/*Adds the line terminator*/
-		}
+		t = aa_func11(lexeme);
 	}
 	else {
 		t.code = INL_T;
@@ -596,6 +656,24 @@ return t;
 }
 
 */
+
+/********************************************************************************************************************************
+Purpose				:The purpose of this function is to store the lexeme content into the String literal table .
+It then sets the appropriate code and attribute for the token and returns it.
+Author				:Nisarg Patel / Divy Shah
+History/Versions		:2018/10/07
+Called Function			:-
+Parameters			:char lexeme[] : The characters that are to be checked
+Return Value			:Token : Token with the code and the attribute set is returned
+Algorithm			: - For processing the string literal , The offset from the beginning of the str_LTBL is stored
+						as the offset for the token
+						- the code is set to the String token code
+						- Now we iterate through the length of the lexeme
+						- For every lexeme we check to make sure it is not a " Quote
+						- Then we add the characters to the str_LTBL by calling the b_addc method
+						- Append the '\0' at the end to make it a ctype string
+						- Return the token
+*******************************************************************************************************************************/
 Token aa_func10(char lexeme[]) {
 
 	/*Varables used are declared.*/
@@ -646,6 +724,23 @@ HERE YOU WRITE YOUR ADDITIONAL FUNCTIONS(IF ANY).
 FOR EXAMPLE
 
 */
+
+/********************************************************************************************************************************
+Purpose				:The purpose of this function is to set the error token . The lexeme is the attibute of the
+error token. The characters are stored into the err_lex accordingly
+Author				:Nisarg Patel / Divy Shah
+History/Versions		:2018/10/07
+Called Function			: -
+Parameters			:char lexeme[] : The characters that are to be checked
+Return Value			:Token : Token with the code and the attribute set is returned
+Algorithm			: - First we set the token code to that of the error token
+- Now check if the lenght of the lexme is greater than ERR_LEN
+- If yes , Store the first 20 characters into the attribute including
+- the appended 3 dots (. , . , .) and the '\0' at the end of the string
+- Otherwise store the entire lexeme into the err_lex
+and set the '\0' at the end.
+-Return the token
+*******************************************************************************************************************************/
 Token aa_func11(char lexeme[]) {
 
 	/*Varables used are declared.*/
@@ -680,6 +775,18 @@ Token aa_func11(char lexeme[]) {
 	return t;
 }
 
+/********************************************************************************************************************************
+Purpose				:The purpose of this function is tocheck if the provided parameter is a keyword or not
+Author				:Nisarg Patel / Divy Shah
+History/Versions		:2018/10/07
+Called Function			:strcmp() - To compare the parameter to the keywords
+Parameters			:char * kw_lexeme : The characters that are to be checked
+Return Value			:i - The location of the keyword , if found , otherwise -1
+Algorithm			: - we iterate through the loop of the given keywords
+						- We compare the paramater to the keyword table to see it its the same
+						- we return the comparision keyword position.
+						- Otherwise we return -1
+*******************************************************************************************************************************/
 int iskeyword(char * kw_lexeme) {
 	int i;
 	/*For loop to compare the lexeme to the Keyword*/

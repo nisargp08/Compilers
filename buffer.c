@@ -55,15 +55,12 @@ Buffer *b_allocate(short init_capacity, char inc_factor, char o_mode) {
 		bufferPointer->mode = 0;
 		bufferPointer->inc_factor = 0;
 	}
-	else if (o_mode == 'f' && (unsigned char)inc_factor != ZERO) {
-		bufferPointer->mode = 0;
-		bufferPointer->inc_factor = 0;
-	}
+	
 	else if (o_mode == 'a' && (unsigned char)inc_factor >= ONE && (unsigned char)inc_factor <= TWO_FIFTY_FIVE) {
 		bufferPointer->mode = 1;
 		bufferPointer->inc_factor = inc_factor;
 	}
-	else if (o_mode == 'm' && (unsigned char)inc_factor >= ONE && (unsigned char)inc_factor <= ONE_HUNDRED) {
+	else if (o_mode == 'm' && inc_factor >= ONE && inc_factor <= ONE_HUNDRED) {
 		bufferPointer->mode = -1;
 		bufferPointer->inc_factor = inc_factor;
 	}
@@ -170,10 +167,16 @@ pBuffer b_addc(pBuffer const pBD, char symbol) {
 		if (newCapArray == NULL) {
 			return NULL;
 		}
+		if (pBD->cb_head == newCapArray)
+		{/* r_flag bit of flags variable is set to ONE here */
+			pBD->flags = pBD->flags | (ONE << SET_R_FLAG);
+		}
+		else
+		{/* r_flag bit of flags variable is reset to ZERO here */
+			pBD->flags = pBD->flags & ~(ONE << RESET_R_FLAG);
+		}
 		/*Pointing cb_head to newly created array with updated capacity*/
 		pBD->cb_head = newCapArray;
-		/* r_flag bit of flags variable is set to ONE here */
-		pBD->flags = pBD->flags | (ONE << SET_R_FLAG);
 		/*Symbol will be added at the current offset position*/
 		//pBD->cb_head[pBD->addc_offset = symbol];
 		*(pBD->cb_head + pBD->addc_offset) = symbol;
@@ -203,7 +206,8 @@ int b_clear(Buffer * const pBD) {
 	pBD->addc_offset = 0;
 	pBD->getc_offset = 0;
 	pBD->markc_offset = 0;
-	pBD->flags = DEFAULT_FALGS;
+	pBD->flags = pBD->flags & ~(ONE << RESET_R_FLAG);
+	pBD->flags = pBD->flags & ~(ONE << RESET_EOB);
 	return TRUE;
 }
 /********************************************************************************************************************************
@@ -299,7 +303,7 @@ Algorithm			:		-
 *******************************************************************************************************************************/
 int b_mode(Buffer * const pBD) {
 	if (pBD == NULL) {
-		return RT_FAIL_1;
+		return RT_FAIL_2;
 	}
 	return pBD->mode;
 }
@@ -586,13 +590,10 @@ int b_rewind(Buffer * const pBD) {
 		return RT_FAIL_1;
 	}
 	/* eBit will hold the value of eob flag(i.e zero or one)*/
-	int eBit;
+
 	pBD->getc_offset = 0;
 	pBD->markc_offset = 0;
-	eBit = b_eob(pBD);
-	if (eBit == 1) {
-		pBD->flags = pBD->flags &~(ONE << RESET_EOB);
-	}
+	
 	return ZERO;
 }
 /********************************************************************************************************************************
