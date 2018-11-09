@@ -52,7 +52,7 @@ static pBuffer sc_buf; /*pointer to input source buffer*/
 					   /* scanner.c static(local) function  prototypes */
 static int char_class(char c); /* character class function */
 static int get_next_state(int, char, int *); /* state machine function */
-											 /*static int iskeyword(char * kw_lexeme); /*keywords lookup functuion */
+static int iskeyword(char * kw_lexeme);/*static int iskeyword(char * kw_lexeme); /*keywords lookup functuion */
 
 
 											 /*Initializes scanner */
@@ -252,87 +252,13 @@ Token malar_next_token(void) {
 						/*Else get another character*/
 						c = b_getc(sc_buf);
 					}
-					/*R*/
+					/*Return token*/
 					return t;
 				}
 
-			case '"':
-				/* Marking the beginning of the string*/
-				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf));
-				c = b_getc(sc_buf);
-				while (c != '"') {
-					/* Incrementing line counter everytime '\n' is found*/
-					if (c == '\n') {
-						line++;
-					}
-					/* When file ends without finding another '"' */
-					else if (c == BACKSLASHZERO || c == (unsigned char)SEOF) {
-						t.code = ERR_T;
-						/* String end stored in lexend*/
-						lexend = b_getcoffset(sc_buf);
-						/* Reseting the getcoffset at the beginning of the string*/
-						b_reset(sc_buf);
-						/* When illegal string is greater than 20 in lenght then array will only hold the first 17 elements and ... for the rest 3 elements*/
-						if ((lexend - lexstart) > 20) {
-							/* Retarcting one character as we are storing '"' int lexical error array*/
-							b_retract(sc_buf);
-							for (i = 0; i < 17; i++) {
-								t.attribute.err_lex[i] = b_getc(sc_buf);
-							}
-							t.attribute.err_lex[i] = '\0';
-							t.attribute.err_lex[i++] = '.';
-							t.attribute.err_lex[i++] = '.';
-							t.attribute.err_lex[i++] = '.';
-						}
-						/* When illegal string is smaller than 20 in length then it will be stored in array*/
-						else {
-							int j = 0;
-							for (i = lexstart; i < lexend; i++) {
-								c = b_getc(sc_buf);
-								if (c == '\n')
-									continue;
-								t.attribute.err_lex[j++] = c;
-							}
-						}
-						/* This is for setting the getcoffset to the element prior to '\0' */
-						while ((c = b_getc(sc_buf)) != BACKSLASHZERO) {
-							c = b_getc(sc_buf);
-						}
-						b_retract(sc_buf);
-						/*Token returned*/
-						return t;
-					} /* SEOF Else if ends*/
-					/* Incrementing to next character in the string*/
-					c = b_getc(sc_buf);
-				}
-
-				/* Second '"' found here */
-				if (c == '"') {
-					/* setting token to STR_T*/
-					t.code = STR_T;
-					t.attribute.str_offset = b_limit(str_LTBL);
-					/* so retracting one element as we dont want last '"' in our string and setting it to lexend*/
-					lexend = b_retract(sc_buf);
-					/* When the string is not empty*/
-					if (lexstart != lexend) {
-						/* Moving the getcoffset to beginning of the string meanign lexstart*/
-						b_reset(sc_buf);
-						/* Looping from beginning to end of string and storing it inside str_LTBL buffer)*/
-						for (i = lexstart; i < lexend; i++) {
-							b_addc(str_LTBL, b_getc(sc_buf));
-						}
-					}
-					/* For getting last '"' to mark the completion of the string*/
-					b_getc(sc_buf);
-					/* Adding '\0' at the end to make it a C type string*/
-					b_addc(str_LTBL, '\0');
-					/* Returning token */
-					return t;
-				}
 			default:
 				/* DFA Implementation */
-				if (isalnum(c)) {
-					lexstart = b_mark(sc_buf, b_getcoffset(sc_buf) - 1);
+					lexstart = b_mark(sc_buf, b_getcoffset(sc_buf)-1);
 					state = get_next_state(state, c, &accept);
 
 					while (accept == NOAS) {
@@ -343,13 +269,13 @@ Token malar_next_token(void) {
 						b_retract(sc_buf);
 					}
 					lexend = b_getcoffset(sc_buf);
-					b_retract(sc_buf);
 					lex_buf = b_allocate((lexend - lexstart) + 1, 0, 'f');
 
 					if (lex_buf == NULL) {
 						char runtimeErrorString[] = "RUN TIME ERROR: ";
 						t.code = RTE_T;
-						for (i = 0; i < strlen(runtimeErrorString); i++) {
+						int len = strlen(runtimeErrorString);
+						for (i = 0; i < len; i++) {
 							t.attribute.err_lex[i] = runtimeErrorString[i];
 						}
 						t.attribute.err_lex[i] = BACKSLASHZERO;
@@ -363,17 +289,9 @@ Token malar_next_token(void) {
 						b_addc(lex_buf, c);
 					}
 					b_addc(lex_buf,BACKSLASHZERO);
-
 					t = aa_table[state](b_location(lex_buf,0));
 					b_free(lex_buf);
 					return t;
-				}/*isalnum if ends*/
-
-				/* if invalid character is found then error token is returned here*/
-				t.code = ERR_T;
-				t.attribute.err_lex[0] = c;
-				t.attribute.err_lex[1] = BACKSLASHZERO;
-				return t;
 			}
 			/* Switch case ends */
 		}/* While ends*/
@@ -403,7 +321,7 @@ static int char_class(char c) {
 	else if (c == '"') {
 		val = SIX;
 	}
-	else if (c == SEOF) {
+	else if (c == SEOF || c == BACKSLASHZERO) {
 		val = SEVEN;
 	}
 	/* Others */
@@ -439,7 +357,7 @@ Purpose				:	The purpose of this function is to firstly check when called if the
 						if the lexeme is a keyword , then the attribute is set and the lexeme is stored into the 
 						Kwt_id field , If it is not a keyword , set the code to Arithmetic VID and then the lexeme is stored
 						into the VID_lex attribute.
-Author				:	Nisarg Patel / Divy Shah
+Author				:	Divy Shah
 History/Versions	:	2018/10/07
 Called Function		:	iskeyword() 
 Parameters			:	char lexeme[] : The characters that are to be checked
@@ -455,7 +373,7 @@ Token aa_func02(char lexeme[])
 {
 	/*Varables used are declared.*/
 	Token t;
-	int i;
+	unsigned int i;
 
 	/*Calls the iskeyword method to check if the given lexeme is a keyword*/
 	if (iskeyword(lexeme) != RT_FAIL_1)
@@ -506,7 +424,7 @@ return t;
 /********************************************************************************************************************************
 Purpose				:	The purpose of this function is to set the code to SVID when called . Then the lexeme is store into 
 						VID_LEX attribute.
-Author				:	Nisarg Patel / Divy Shah
+Author				:	Divy Shah
 History/Versions	:	2018/10/07
 Called Function		:	-
 Parameters			:	char lexeme[] : The characters that are to be checked
@@ -522,7 +440,7 @@ Token aa_func03(char lexeme[]) {
 
 	/*Varables used are declared.*/
 	Token t;
-	int i;
+	unsigned int i;
 
 	/*Sets the Token code to SVID_T */
 	t.code = SVID_T;
@@ -569,7 +487,7 @@ return t;
 /********************************************************************************************************************************
 Purpose				:	The purpose of this function is to process thre Floating point Literal , It converts the lexeme into 
 						floating point values and set it as the attribute.
-Author				:	Nisarg Patel / Divy Shah
+Author				:	Divy Shah
 History/Versions	:	2018/10/07
 Called Function		:	atof()
 Parameters			:	char lexeme[] : The characters that are to be checked
@@ -590,14 +508,14 @@ Token aa_func08(char lexeme[]) {
 
 	/*Now convert the string to float*/
 	f = atof(lexeme);
-
+	float a = (float)f;
 	/*Check that the value of the lexeme converted to float is in range */
 	if ((f > 0 && (f > FLT_MAX || f < FLT_MIN)) || (f < 0 && (f < -FLT_MAX || f > -FLT_MIN))) {
 		t = aa_func11(lexeme);
 	}
 	else {
 		t.code = FPL_T; /*The Error token value is set to the token code*/
-		t.attribute.flt_value = f;	/*The attribute is the value of the lexeme */
+		t.attribute.flt_value = a;	/*The attribute is the value of the lexeme */
 	}
 	return t;
 }
@@ -623,7 +541,7 @@ Token aa_func05(char lexeme[]) {
 	/*Varables used are declared.*/
 	Token t;
 	int l = 0;
-	long i = 0;
+	unsigned long i = 0;
 
 	/*Now lets convert it to decimal constant*/
 	l = atol(lexeme);
@@ -682,15 +600,14 @@ Token aa_func10(char lexeme[]) {
 
 	/*Varables used are declared.*/
 	Token t;
-	int i = 0;
-
+	unsigned int i = 0;
 
 	/*The attribute  of the string token is the offset from the beginning to the location*/
-	t.attribute.str_offset = b_getcoffset(str_LTBL);
-	//printf("\n attribute : %d \n",b_getcoffset(str_LTBL));
-	t.code = STR_T; /*The code is set to the String token code*/
+	t.attribute.str_offset = b_limit(str_LTBL);
+	/*The code is set to the String token code*/
+	t.code = STR_T; 
 
-					/*Loop to iteratre through the lexeme*/
+	/*Loop to iteratre through the lexeme*/
 	for (i = 0; i < strlen(lexeme); i++)
 	{
 		/*If a double quote is acquired , do not add it to the buffer*/
@@ -698,14 +615,14 @@ Token aa_func10(char lexeme[]) {
 		{
 			continue;
 		}
-		if (lexeme[i] == '\0')
+		/* NEw line character to increment the line counter*/
+		if (lexeme[i] == '\n')
 		{
 			line++;
 		}
 		b_addc(str_LTBL, lexeme[i]);
 	}
 	b_addc(str_LTBL, '\0');
-	line++;
 	return t;
 }
 
@@ -733,7 +650,7 @@ Token aa_func11(char lexeme[]) {
 
 	/*Varables used are declared.*/
 	Token t;
-	int i = 0;
+	unsigned int i = 0;
 
 	/*set the code to the error token*/
 	t.code = ERR_T;
@@ -758,21 +675,11 @@ Token aa_func11(char lexeme[]) {
 			t.attribute.err_lex[i] = lexeme[i];
 		}
 		t.attribute.err_lex[i] = '\0';/*Adds the line terminator*/
-		line++;
+		//line++;
 	}
 	return t;
 }
 
-
-Token aa_func12(char lexeme[]) {
-	/*Varables used are declared.*/
-	Token t;
-
-	/*We call the */
-	t = aa_func11(lexeme); 
-	b_retract(sc_buf);
-	return t;
-}
 int iskeyword(char * kw_lexeme) {
 	int i;
 	/*For loop to compare the lexeme to the Keyword*/

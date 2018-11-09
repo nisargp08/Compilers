@@ -66,7 +66,7 @@ int  st_table[][TABLE_COLUMNS] = {
 	/* State 9 */	{ 9 , 9 , 9 , 9 , 9 , 9 , 10 , ER }, 
 	/* State 10 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
 	/* State 11 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
-	/* State 12 */	/*{ IS , IS , IS , IS , IS , IS , IS , },*/
+	/* State 12 */	{ IS , IS , IS , IS , IS , IS , IS , IS},
 };
 
 /* Accepting state table definition */
@@ -102,7 +102,6 @@ Token aa_func05(char *lexeme);	/* DIL */
 Token aa_func08(char *lexeme);	/* FPL */
 Token aa_func10(char *lexeme);	/* SL */
 Token aa_func11(char *lexeme);	/* ES */
-/*Token aa_func12(char *lexeme);/* ER */
 
 /* defining a new type: pointer to function (of one char * argument)
 returning Token
@@ -130,7 +129,7 @@ PTR_AAF aa_table[] = {
 	/* State 9 */	NULL,
 	/* State 10 */	aa_func10,
 	/* State 11 */	aa_func11,
-	/* State 12 */	/*aa_func12*/
+	/* State 12 */	aa_func11,
 };
 
 /* Keyword lookup table (.AND. and .OR. are not keywords) */
