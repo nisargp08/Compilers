@@ -5,7 +5,7 @@ Compiler				:	MS Visual Studio 2015
 Author / Student name	:	Nisarg Patel,040859993
 							Divy Shah, 040859087
 Course					:	CST 8152 - Compilers
-Lab section				:	13 , 14
+Lab section				:	13(Nisarg) , 14(Divy)
 Assignment				:	2
 Date					:	2018/10/8
 Professor				:	Sv. Ranev
@@ -59,7 +59,7 @@ static int iskeyword(char * kw_lexeme);/*static int iskeyword(char * kw_lexeme);
 
 /********************************************************************************************************************************
 Purpose			:The purpose of this function is to initialize the scanner
-Author			: Nisarg Patel / Divy Shah
+Author			: Sv. Ranev
 History / Versions	: 2018 / 10 / 07
 Called Function		: b_isempty() -  To check if the buffer is empty
 						b_rewind() - To rewind the buffer
@@ -292,40 +292,54 @@ Token malar_next_token(void) {
 
 			default:
 				/* DFA Implementation */
-					lexstart = b_mark(sc_buf, b_getcoffset(sc_buf)-1);
+				/* Setting the mark at the beginning of the character*/
+				lexstart = b_mark(sc_buf, b_getcoffset(sc_buf) - 1);
+				/* Getting the next state for the element*/
+				state = get_next_state(state, c, &accept);
+				/*Looping untill accepting state is found*/
+				while (accept == NOAS) {
+					c = b_getc(sc_buf);
 					state = get_next_state(state, c, &accept);
-
-					while (accept == NOAS) {
-						c = b_getc(sc_buf);
-						state = get_next_state(state, c, &accept);
+				}
+				/* If accepting state is with retract then performing a retract*/
+				if (accept == ASWR) {
+					b_retract(sc_buf);
+				}
+				/*Setting lexend at the end of the character*/
+				lexend = b_getcoffset(sc_buf);
+				/*Creating temp buffer to hold the string elements*/
+				lex_buf = b_allocate((lexend - lexstart) + 1, 0, 'f');
+				/*In case of a fail memory allocation it will return RUNTIME Token and store the string in err_lex array*/
+				if (lex_buf == NULL) {
+					char runtimeErrorString[] = "RUN TIME ERROR: ";
+					t.code = RTE_T;
+					int len = strlen(runtimeErrorString);
+					for (i = 0; i < len; i++) {
+						t.attribute.err_lex[i] = runtimeErrorString[i];
 					}
-					if (accept == ASWR) {
-						b_retract(sc_buf);
-					}
-					lexend = b_getcoffset(sc_buf);
-					lex_buf = b_allocate((lexend - lexstart) + 1, 0, 'f');
-
-					if (lex_buf == NULL) {
-						char runtimeErrorString[] = "RUN TIME ERROR: ";
-						t.code = RTE_T;
-						int len = strlen(runtimeErrorString);
-						for (i = 0; i < len; i++) {
-							t.attribute.err_lex[i] = runtimeErrorString[i];
-						}
-						t.attribute.err_lex[i] = BACKSLASHZERO;
-						scerrnum = 1;
-						free(lex_buf);
-						return t;
-					}
-					b_reset(sc_buf);
-					for (i = 0; i < lexend - lexstart; i++) {
-						c = b_getc(sc_buf);
-						b_addc(lex_buf, c);
-					}
-					b_addc(lex_buf,BACKSLASHZERO);
-					t = aa_table[state](b_location(lex_buf,0));
-					b_free(lex_buf);
+					t.attribute.err_lex[i] = BACKSLASHZERO;
+					/*Storing non negative number in scerrnum*/
+					scerrnum = 1;
+					/*Freeing up the buffer*/
+					free(lex_buf);
+					/*Returning Token*/
 					return t;
+				}
+				/*Setting c at the beginning of the string meaming lexstart*/
+				b_reset(sc_buf);
+				/*Storing the string in lexbuffer*/
+				for (i = 0; i < lexend - lexstart; i++) {
+					c = b_getc(sc_buf);
+					b_addc(lex_buf, c);
+				}
+				/*Including a backslashzero to make it C type string*/
+				b_addc(lex_buf, BACKSLASHZERO);
+				/*Calling appropriate aa functions according tostate and column*/
+				t = aa_table[state](b_location(lex_buf, 0));
+				/*Free up temp buffer*/
+				b_free(lex_buf);
+				/*Returning token t*/
+				return t;
 			}
 			/* Switch case ends */
 		}/* While ends*/
@@ -334,7 +348,7 @@ Token malar_next_token(void) {
 
  /********************************************************************************************************************************
  Purpose				:The purpose of this function is to return the value of the column for a partucylar character c
- Author					:Nisarg Patel / Divy Shah
+ Author					:Nisarg Patel
  History/Versions		:2018/10/07
  Called Function		:isalpha() - If it is an alphabet
 						 isdigit() - To check if it is a digit
@@ -352,31 +366,38 @@ Token malar_next_token(void) {
 static int char_class(char c) {
 	int val;
 	//define constatns
-	/* Column One - [a-zA-z]*/
+	/* Column Zero - [a-zA-z]*/
 	if (isalpha(c)) {
 		val = ZERO;
 	}
 	else if (isdigit(c)) {
 		if (c == CHARZERO) {
+			/*Column One - 0*/
 			val = ONE;
 		}
 		else
+			/*Column Two - [1-9]*/
 			val = TWO;
 	}
 	else if (c == '.') {
+		/*Column Three - .*/
 		val = THREE;
 	}
 	else if (c == '$') {
+		/*Column Four - $*/
 		val = FOUR;
 	}
 	else if (c == '"') {
+		/*Column Five - "*/
 		val = SIX;
 	}
 	else if (c == SEOF || c == BACKSLASHZERO) {
+		/*Column Seven - 255,/0*/
 		val = SEVEN;
 	}
 	/* Others */
 	else
+		/*Column Five - Others*/
 		val = FIVE;
 	return val;
 }
@@ -391,11 +412,11 @@ Parameters			:state: int - The current state
 					*accept - int - the value of the accepting state
 Return Value		:	int : the value of the next suitable state is returned
 Algorithm			: -First we get the value of col from the char_class
-						- Then we get the value of the next state depending on the values of column
-						and the state.
-						- Now check if the state is Illegeal
-						- If not , we change the value of the accepting state
-						- Return the next value
+					- Then we get the value of the next state depending on the values of column
+					and the state.
+					- Now check if the state is Illegeal
+					- If not , we change the value of the accepting state
+					- Return the next value
 *******************************************************************************************************************************/
 int get_next_state(int state, char c, int *accept)
 {
@@ -412,7 +433,7 @@ int get_next_state(int state, char c, int *accept)
 		printf("Scanner Error: Illegal state:\n");
 		printf("Input symbol: %c Row: %d Column: %d\n", c, state, col);
 		exit(1);
-}
+	}
 #endif
 	*accept = as_table[next];
 	return next;
@@ -420,18 +441,19 @@ int get_next_state(int state, char c, int *accept)
 
 /********************************************************************************************************************************
 Purpose				:	The purpose of this function is to firstly check when called if the lexeme is a keyword ,
-						if the lexeme is a keyword , then the attribute is set and the lexeme is stored into the 
+						if the lexeme is a keyword , then the attribute is set and the lexeme is stored into the
 						Kwt_id field , If it is not a keyword , set the code to Arithmetic VID and then the lexeme is stored
 						into the VID_lex attribute.
 Author				:	Divy Shah
+Tested By			:	Nisarg Patel
 History/Versions	:	2018/10/07
-Called Function		:	iskeyword() 
+Called Function		:	iskeyword()
 Parameters			:	char lexeme[] : The characters that are to be checked
 Return Value		:	Token : Token with the code and the attribute set is returned
 Algorithm			:	- First we check to make sure if the lexeme is a keyword ,
 						- If it is a keyword , Set the code and the attribute and return the token
-						- Otherwise Set the code to AVID 
-						- Check if the length of the is greater than VID_LEN 
+						- Otherwise Set the code to AVID
+						- Check if the length of the is greater than VID_LEN
 						- If yes , Store the first 8 characters into the attribute
 						- Otherwise store the entire lexeme into the attribute
 *******************************************************************************************************************************/
@@ -488,17 +510,18 @@ return t;
 }
 */
 /********************************************************************************************************************************
-Purpose				:	The purpose of this function is to set the code to SVID when called . Then the lexeme is store into 
+Purpose				:	The purpose of this function is to set the code to SVID when called . Then the lexeme is store into
 						VID_LEX attribute.
-Author				:	Divy Shah
+Author				:	Nisarg Patel
+Tested By			:	Divy Shah
 History/Versions	:	2018/10/07
 Called Function		:	-
 Parameters			:	char lexeme[] : The characters that are to be checked
 Return Value		:	Token : Token with the code and the attribute set is returned
 Algorithm			:	- First we set the code to the SVID for svid token
-						- Check if the length of the is greater than VID_LEN 
+						- Check if the length of the is greater than VID_LEN
 						- If yes , Store the first 8 characters into the attribute
-						- Append the $ and the '\0' at the end of the string 
+						- Append the $ and the '\0' at the end of the string
 						- Otherwise store the entire lexeme into the attribute
 							and set the '\0' at the end.
 *******************************************************************************************************************************/
@@ -551,11 +574,13 @@ return t;
 
 */
 /********************************************************************************************************************************
-Purpose				:	The purpose of this function is to process thre Floating point Literal , It converts the lexeme into 
+Purpose				:	The purpose of this function is to process thre Floating point Literal , It converts the lexeme into
 						floating point values and set it as the attribute.
 Author				:	Divy Shah
+Tested By			:	Nisarg Patel
 History/Versions	:	2018/10/07
-Called Function		:	atof()
+Called Function		:	atof() - Convert string to float
+					:	aa_func11() : Error checking
 Parameters			:	char lexeme[] : The characters that are to be checked
 Return Value		:	Token : Token with the code and the attribute set is returned
 Algorithm			:	- First we convert the lexeme into a floating point value
@@ -605,10 +630,12 @@ return t;
 /********************************************************************************************************************************
 Purpose					:The purpose of this function is to process the Decimal Integer Literal . When ccalled , It converts
 the lexeme into a Decimal integer value and set it as the sttribute.
-Author					:Nisarg Patel / Divy Shah
+Author   			:	Nisarg Patel
+Tested By			:	Divy Shah
 History/Versions		:2018/10/07
 Called Function			:atol() -  converts the string argument str to a long integer
 Parameters				:char lexeme[] : The characters that are to be checked
+						: aa_func11() : Error checking
 Return Value			:Token : Token with the code and the attribute set is returned
 Algorithm			: - First we convert the lexeme into a Long Integer value
 						- Check if the the calue is in the range of the 2Byte Integer in C
@@ -660,7 +687,8 @@ return t;
 /********************************************************************************************************************************
 Purpose				:The purpose of this function is to store the lexeme content into the String literal table .
 It then sets the appropriate code and attribute for the token and returns it.
-Author				:Nisarg Patel / Divy Shah
+Author				:	Divy Shah
+Tested By			:	Nisarg Patel
 History/Versions		:2018/10/07
 Called Function			:-
 Parameters			:char lexeme[] : The characters that are to be checked
@@ -683,7 +711,7 @@ Token aa_func10(char lexeme[]) {
 	/*The attribute  of the string token is the offset from the beginning to the location*/
 	t.attribute.str_offset = b_limit(str_LTBL);
 	/*The code is set to the String token code*/
-	t.code = STR_T; 
+	t.code = STR_T;
 
 	/*Loop to iteratre through the lexeme*/
 	for (i = 0; i < strlen(lexeme); i++)
@@ -728,7 +756,8 @@ FOR EXAMPLE
 /********************************************************************************************************************************
 Purpose				:The purpose of this function is to set the error token . The lexeme is the attibute of the
 error token. The characters are stored into the err_lex accordingly
-Author				:Nisarg Patel / Divy Shah
+Author				:Nisarg Patel
+Tested By			:	Divy Shah
 History/Versions		:2018/10/07
 Called Function			: -
 Parameters			:char lexeme[] : The characters that are to be checked

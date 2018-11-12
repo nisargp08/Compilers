@@ -2,8 +2,8 @@
 
 Filename				:	table.h
 Compiler				:	MS Visual Studio 2015
-Author / Student name			:	Nisarg Patel,040859993
-									Divy Shah, 040859087
+Author / Student name	:	Nisarg Patel,040859993
+							Divy Shah, 040859087
 Course					:	CST 8152 - Compilers
 Lab section				:	13 , 14
 Assignment				:	2
