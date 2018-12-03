@@ -1,6 +1,6 @@
 #include "buffer.h"
-#include "table.h"
 #include "token.h"
+#include "table.h"
 #include "scanner.c"
 
 /*Static Global variables*/
@@ -14,3 +14,4 @@ static int synerrno;
 /*Function Prototypes*/
 void parser(void);
 void match(int pr_token_code, int pr_token_attribute);
+void syn_eh(int sync_token_code);
