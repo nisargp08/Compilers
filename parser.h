@@ -41,4 +41,9 @@ void arithmetic_expression(void);
 void unary_arithmetic_expression(void);
 void primary_arithmetic_expression(void);
 void additive_arithmetic_expression(void);
+void additive_arithmetic_expression_dash(void);
+void multiplicative_arithmetic_expression(void);
+void multiplicative_arithmetic_expression_dash(void);
+void string_expression(void);
+void primary_string_expression(void);
 #endif
