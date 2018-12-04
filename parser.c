@@ -186,6 +186,15 @@ void program(void) {
 }
 
 void opt_statements(void) {
+	statement();
+	statement_dash();
+}
+
+void statement(void) {
+
+}
+
+void statement_dash(void) {
 
 }
 
@@ -283,5 +292,86 @@ void primary_arithmetic_expression(void) {
 	gen_incode("PLATY: Primary arithmetic expression parsed");
 }
 void additive_arithmetic_expression(void) {
-
+	multiplicative_arithmetic_expression();
+	additive_arithmetic_expression_dash();
 }
+void additive_arithmetic_expression_dash(void) {
+	switch (lookahead.code) {
+		case ART_OP_T:
+			switch (lookahead.attribute.arr_op) {
+				case PLUS:
+					match(ART_OP_T, PLUS);
+					multiplicative_arithmetic_expression();
+					additive_arithmetic_expression_dash();
+					gen_incode("PLATY: Additive arithmetic expression parsed");
+					break;
+				case MINUS:
+					match(ART_OP_T, MINUS);
+					multiplicative_arithmetic_expression();
+					additive_arithmetic_expression_dash();
+					gen_incode("PLATY: Additive arithmetic expression parsed");
+					break;
+				default:
+					syn_printe();
+					break;
+				}
+			break;
+	}
+}
+
+void multiplicative_arithmetic_expression(void) {
+	primary_arithmetic_expression();
+	multiplicative_arithmetic_expression_dash();
+}
+
+void multiplicative_arithmetic_expression_dash(void) {
+	switch (lookahead.code) {
+	case ART_OP_T:
+		switch (lookahead.attribute.arr_op) {
+		case MULT:
+			match(ART_OP_T, MULT);
+			primary_arithmetic_expression();
+			multiplicative_arithmetic_expression_dash();
+			gen_incode("PLATY: Multiplicative arithmetic expression parsed");
+			break;
+		case DIV:
+			match(ART_OP_T, DIV);
+			primary_arithmetic_expression();
+			multiplicative_arithmetic_expression_dash();
+			gen_incode("PLATY: Multiplicative arithmetic expression parsed");
+			break;
+		}
+		break;
+	}
+}
+
+void string_expression(void) {
+	primary_string_expression();
+	string_expression_dash();
+	gen_incode("PLATY: String expression parsed");
+}
+
+void string_expression_dash(void) {
+	switch (lookahead.code) {
+		case SCC_OP_T:
+			match(SCC_OP_T, NO_ATTR);
+			primary_string_expression();
+			string_expression_dash();
+			break;
+	}
+}
+
+void primary_string_expression(void) {
+	switch (lookahead.code) {
+		case SVID_T:
+			match(SVID_T, NO_ATTR);
+			gen_incode("PLATY: Primary string expression parsed");
+			break;
+		case STR_T:
+			match(STR_T, NO_ATTR);
+			gen_incode("PLATY: Primary string expression parsed");
+			break;
+	}
+}
+
+
