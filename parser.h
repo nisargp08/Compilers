@@ -15,3 +15,5 @@ static int synerrno;
 void parser(void);
 void match(int pr_token_code, int pr_token_attribute);
 void syn_eh(int sync_token_code);
+void syn_printe();
+void gen_incode(char* string);
