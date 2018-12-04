@@ -1,4 +1,7 @@
+#include <stdlib.h>
+#ifndef PARSER_H_
 #include "parser.h"
+#endif
 
 void parser(void) {
 	lookahead = malar_next_token();
@@ -52,7 +55,7 @@ void match(int pr_token_code, int pr_token_attribute) {
 	}
 } /*Match ends*/
 
-/*Error handling function*/
+  /*Error handling function*/
 void syn_eh(int sync_token_code) {
 	/*First calling syn_printe() and incrementing the counter*/
 	syn_printe();
@@ -174,6 +177,111 @@ void gen_incode(char *string) {
 	/*Later can be used to perform bonus 1*/
 }
 
+void program(void) {
+	match(KW_T, PLATYPUS);
+	match(LBR_T, NO_ATTR);
+	opt_statements();
+	match(RBR_T, NO_ATTR);
+	gen_incode("PLATY: Program parsed");
+}
 
+void opt_statements(void) {
 
+}
 
+void assignment_statement(void) {
+	assignment_expression();
+	match(EOS_T, NO_ATTR);
+	gen_incode("PLATY: Assignment statement parsed");
+}
+
+void assignment_expression(void) {
+	switch (lookahead.code) {
+	case AVID_T:
+		match(AVID_T, NO_ATTR);
+		match(ASS_OP_T, EQ);
+		arithmetic_expression();
+		gen_incode("PLATY: Assignment expression (arithmetic) parsed");
+		break;
+	case SVID_T:
+		match(SVID_T, NO_ATTR);
+		match(ASS_OP_T, EQ);
+		string_expression();
+		gen_incode("PLATY: Assignment expression (string) parsed");
+		break;
+	default:
+		syn_printe();
+	}
+}
+
+void arithmetic_expression(void) {
+	switch (lookahead.code) {
+	/*First Checking if operator is unary */
+		case ART_OP_T:
+			/*If its one of +,- then calling unary_arithmetic_expression*/
+			if (lookahead.attribute.arr_op == PLUS || lookahead.attribute.arr_op == MINUS)
+				unary_arithmetic_expression();
+			else
+				syn_printe();
+			gen_incode("PLATY: Arithmetic expression parsed");
+			break;
+	/*Checking for AVID,FPL,INL,LPR*/
+		case AVID_T:
+		case FPL_T:
+		case INL_T:
+		case LPR_T:
+			/*Following code will be executed for the above mentioned four case(upto AVID_T)*/
+			additive_arithmetic_expression();
+			gen_incode("PLATY: Additive arithmetic expression parsed");
+			break;
+		default:
+			syn_printe();
+			break;
+	}
+}
+
+void unary_arithmetic_expression(void) {
+	switch (lookahead.code) {
+	case ART_OP_T:
+		switch (lookahead.attribute.arr_op) {
+		case PLUS:
+			match(ART_OP_T, PLUS);
+			primary_arithmetic_expression();
+			break;
+		case MINUS:
+			match(ART_OP_T, MINUS);
+			primary_arithmetic_expression();
+			break;
+		default:
+			syn_printe();
+			break;
+		}
+	}
+	gen_incode("PLATY: Unary arithmetic expression parsed");
+}
+
+void primary_arithmetic_expression(void) {
+	switch (lookahead.code) {
+	case AVID_T:
+		match(AVID_T, NO_ATTR);
+		break;
+	case FPL_T:
+		match(FPL_T, NO_ATTR);
+		break;
+	case INL_T:
+		match(INL_T, NO_ATTR);
+		break;
+	case LPR_T:
+		match(LPR_T, NO_ATTR);
+		arithmetic_expression();
+		match(RPR_T, NO_ATTR);
+		break;
+	default:
+		syn_printe();
+		break;
+	}
+	gen_incode("PLATY: Primary arithmetic expression parsed");
+}
+void additive_arithmetic_expression(void) {
+
+}
