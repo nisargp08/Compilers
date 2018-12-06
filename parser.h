@@ -1,3 +1,26 @@
+/********************************************************************************************************************************
+
+Filename				:	parser.h
+Compiler				:	MS Visual Studio 2015
+Author / Student name	:	Nisarg Patel,040859993
+							Divy Shah, 040859087
+Course					:	CST 8152 - Compilers
+Lab section				:	13(Nisarg) , 14(Divy)
+Assignment				:	3
+Date					:	2018/12/06
+Professor				:	Sv. Ranev
+Purpose					:	Implementing a Parser and more…
+Functions list			:	parser(),malar_next_token(),program(),match(),gen_incode(),syn_eh(),syn_printe(),exit(),printf(),opt_statements();
+							statements(), statement(),statement_dash(),assignment_statement(),assignment_expression(),arithmetic_expression(),
+							unary_arithmetic_expression(),primary_arithmetic_expression(),additive_arithmetic_expression(),additive_arithmetic_expression_dash(),
+							multiplicative_arithmetic_expression(),multiplicative_arithmetic_expression_dash(),string_expression(),string_expression_dash(),
+							primary_string_expression(),selection_statement(),conditional_expression(),logical_or_expression(),logical_and_expression(),
+							logical_or_expression_dash(),logical_and_expression_dash(),relational_expression(),primary_a_relational_expression(),
+							primary_a_relational_expression_dash(),primary_s_relational_expression(),primary_s_relational_expression_dash(),
+							void iteration_statement(),input_statement(),variable_list(),variable_identifier(),variable_list_dash(),
+							output_statement(),output_statement_dash()
+
+*******************************************************************************************************************************/
 #ifndef BUFFER_H_
 #include "buffer.h"
 #endif
@@ -16,20 +39,20 @@ extern int line;						/* source code line number - defined in scanner.c */
 extern char *kw_table[];				/*Keyword table array*/
 extern Buffer * str_LTBL;				/*String literal table */
 
-										/*Variable Declaration*/
-#define NO_ATTR		-1						/*For NULL attribute*/
-#define ELSE		0						/*Assigned value for keyword ELSE*/ 
-#define FALSE		1						/*Assigned value for keyword FALSE*/
-#define IF			2						/*Assigned value for keyword IF*/ 
-#define PLATYPUS	3						/*Assigned value for keyword PLATYPUS*/
-#define READ		4						/*Assigned value for keyword READ*/
-#define REPEAT		5						/*Assigned value for keyword REPEAT*/
-#define THEN		6						/*Assigned value for keyword THEN*/ 
-#define TRUE		7						/*Assigned value for keyword TRUE*/ 
-#define WHILE		8						/*Assigned value for keyword WHILE*/
-#define WRITE		9						/*Assigned value for keyword WRITE*/
+/*Variable Declaration*/
+#define NO_ATTR		-1					/*For NULL attribute*/
+#define ELSE		0					/*Assigned value for keyword ELSE*/ 
+#define FALSE		1					/*Assigned value for keyword FALSE*/
+#define IF			2					/*Assigned value for keyword IF*/ 
+#define PLATYPUS	3					/*Assigned value for keyword PLATYPUS*/
+#define READ		4					/*Assigned value for keyword READ*/
+#define REPEAT		5					/*Assigned value for keyword REPEAT*/
+#define THEN		6					/*Assigned value for keyword THEN*/ 
+#define TRUE		7					/*Assigned value for keyword TRUE*/ 
+#define WHILE		8					/*Assigned value for keyword WHILE*/
+#define WRITE		9					/*Assigned value for keyword WRITE*/
 
-										/*Function Prototypes*/
+/*Function Prototypes*/
 void parser(void);
 void match(int pr_token_code, int pr_token_attribute);
 void syn_eh(int sync_token_code);
