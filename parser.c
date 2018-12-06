@@ -6,25 +6,49 @@ Author / Student name	:	Nisarg Patel,040859993
 							Divy Shah, 040859087
 Course					:	CST 8152 - Compilers
 Lab section				:	13(Nisarg) , 14(Divy)
-Assignment				:	2
-Date					:	2018/10/8
+Assignment				:	3
+Date					:	2018/12/06
 Professor				:	Sv. Ranev
-Purpose					:	To create a functioning Scanner for the buffer and understand the concepts.
-Functions list				:	scanner_init() , malar_next_token() , char_class() , get_next_state() ,
-aa_func02() , aa_func03() , aa_func05() , aa_func08() , aa_func10() ,
-aa_func11() , aa_func12()
+Purpose					:	Implementing a Parser and moreâ€¦
+Functions list			:	parser(),malar_next_token(),program(),match(),gen_incode(),syn_eh(),syn_printe(),exit(),printf(),opt_statements();
+							statements(), statement(),statement_dash(),assignment_statement(),assignment_expression(),arithmetic_expression(),
+							unary_arithmetic_expression(),primary_arithmetic_expression(),additive_arithmetic_expression(),additive_arithmetic_expression_dash(),
+							multiplicative_arithmetic_expression(),multiplicative_arithmetic_expression_dash(),string_expression(),string_expression_dash(),
+							primary_string_expression(),selection_statement(),conditional_expression(),logical_or_expression(),logical_and_expression(),
+							logical_or_expression_dash(),logical_and_expression_dash(),relational_expression(),primary_a_relational_expression(),
+							primary_a_relational_expression_dash(),primary_s_relational_expression(),primary_s_relational_expression_dash(),
+							void iteration_statement(),input_statement(),variable_list(),variable_identifier(),variable_list_dash(),
+							output_statement(),output_statement_dash()
 
 *******************************************************************************************************************************/
 #include <stdlib.h>
 #include "parser.h"
-
+/********************************************************************************************************************************
+Purpose					:The purpose of this function is to parse the entire written code
+Author					: Sv. Ranev
+History / Versions		: 2018/12/06
+Called Function			: malar_next_token(),program(),match(),gen_incode();
+Parameters				: None
+Return Value			: None
+Algorithm				: Calls program() to parse the entire code untill SEOF is reached
+* ******************************************************************************************************************************/
 void parser(void) {
 	lookahead = malar_next_token();
 	program();
 	match(SEOF_T, NO_ATTR);
 	gen_incode("PLATY: Source file parsed");
 }
-
+/********************************************************************************************************************************
+Purpose					: The purpose of this function is to match the passed token via arguments
+Author					: Nisarg Patel
+History / Versions		: 2018/12/06
+Called Function			: syn_eh(),malar_next_token(),syn_printe();
+Parameters				: int pr_token_code - Holds token code for the passed token
+						  int pr_token_attribute - Holds token attribute for the passed token
+Return Value			: None
+Algorithm				: Compares passed token code and attribute with the lookahead if they match then token is increemnted else
+						  calls error handler or error function according to the condition
+* ******************************************************************************************************************************/
 void match(int pr_token_code, int pr_token_attribute) {
 	/*When token code not equal to lookahead meaning match failed*/
 	if (lookahead.code != pr_token_code) {
@@ -71,6 +95,16 @@ void match(int pr_token_code, int pr_token_attribute) {
 } /*Match ends*/
 
   /*Error handling function*/
+  /********************************************************************************************************************************
+  Purpose					: The purpose of this function to print the errors in the program,increment error counter and increment
+							  the lookahead token variable untill passed token code is not matched
+  Author					: Nisarg Patel
+  History / Versions		: 2018/12/06
+  Called Function			: exit(),malar_next_token(),syn_printe();
+  Parameters				: int sync_token_code - Holds token code for the passed token
+  Return Value				: None
+  Algorithm					: None
+  * ******************************************************************************************************************************/
 void syn_eh(int sync_token_code) {
 	/*First calling syn_printe() and incrementing the counter*/
 	syn_printe();
@@ -96,6 +130,15 @@ void syn_eh(int sync_token_code) {
 }
 
 /*Error printing function*/
+/********************************************************************************************************************************
+Purpose					: The purpose of this function is to print encountered errors in the program
+Author					: Sv.Ranev
+History / Versions		: 2018/12/06
+Called Function			: printf();
+Parameters				: None
+Return Value			: None
+Algorithm				: None
+* ******************************************************************************************************************************/
 /* error printing function for Assignment 3 (Parser), F18 */
 void syn_printe() {
 	Token t = lookahead;
@@ -168,12 +211,26 @@ void syn_printe() {
 	}/*end switch*/
 }/* end syn_printe()*/
 
+/********************************************************************************************************************************
+Purpose					: The purpose of this function is to print the passed char*
+Author					: Nisarg Patel
+History / Versions		: 2018/12/06
+Called Function			: printf();
+Parameters				: char *string - Holds passed string
+Return Value			: None
+Algorithm				: None
+* ******************************************************************************************************************************/
 void gen_incode(char *string) {
 	/*Printing the passed string*/
 	printf("%s\n", string);
 	/*Later can be used to perform bonus 1*/
 }
+/*
+Author						:	Sv.Ranev
+Grammar Production			:	<program> -> PLATYPUS{<opt_statement>}SEOF
+FIRST set of the Production :	FIRST(<program>) = {KW_T(PLATYPUS)}
 
+*/
 void program(void) {
 	match(KW_T, PLATYPUS);
 	match(LBR_T, NO_ATTR);
@@ -181,9 +238,14 @@ void program(void) {
 	match(RBR_T, NO_ATTR);
 	gen_incode("PLATY: Program parsed");
 }
+/*
+Author						:	Sv.Ranev
+Grammar Production			:	<opt_statements> ->  <statements> | e  
+FIRST set of the Production :	FIRST(<opt_statements>) = { AVID_T , SVID_T , KW{IF} , KW{WHILE} , KW{READ} , KW{WRITE} , e }
 
+*/
 void opt_statements(void) {
-	/* FIRST set: {AVID_T,SVID_T,KW_T(but not … see above),e} */
+	/* FIRST set: {AVID_T,SVID_T,KW_T(but not ï¿½ see above),e} */
 	switch (lookahead.code) {
 	case AVID_T:
 	case SVID_T: statements(); break;
@@ -199,16 +261,26 @@ void opt_statements(void) {
 			statements();
 			break;
 		}
-	default: /*empty string – optional statements*/;
+	default: /*empty string ï¿½ optional statements*/;
 		gen_incode("PLATY: Opt_statements parsed");
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:	<statements> ->  <statement><statement'>
+FIRST set of the Production :	FIRST(<statements>) = { AVID_T , SVID_T , KW{IF} , KW{WHILE} , KW{READ} , KW{WRITE} }
 
+*/
 void statements(void) {
 	statement();
 	statement_dash();
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:	<statement> -> <assignment statement> | < selection statement> | <iteration statement> | <input statement> | <output statement>
+FIRST set of the Production :	FIRST(<statement>) = {AVID_T , SVID_T , KW{IF} , KW{WHILE} , KW{READ} , KW{WRITE} }
 
+*/
 void statement() {
 	switch (lookahead.code) {
 	case AVID_T:
@@ -236,7 +308,12 @@ void statement() {
 		break;
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:	<statement'> -> <statement><statement'> | e 
+FIRST set of the Production :	FIRST(<statement'>) = { AVID_T , SVID_T , KW{IF} , KW{WHILE} , KW{READ} , KW{WRITE} , e }
 
+*/
 void statement_dash(void) {
 	switch (lookahead.code) {
 	case AVID_T:
@@ -259,13 +336,23 @@ void statement_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:	<assignment statement> -> <assignment expression>;
+FIRST set of the Production :	FIRST(<assignment statement>) = { AVID_T , SVID_T }
 
+*/
 void assignment_statement(void) {
 	assignment_expression();
 	match(EOS_T, NO_ATTR);
 	gen_incode("PLATY: Assignment statement parsed");
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:	<assignment expression> -> AVID = <arithmetic expression> | SVID = <string expression>
+FIRST set of the Production :	FIRST( <assignment expression> ) = { AVID_T , SVID_T }
 
+*/
 void assignment_expression(void) {
 	switch (lookahead.code) {
 	case AVID_T:
@@ -285,7 +372,12 @@ void assignment_expression(void) {
 		break;
 	}
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:	<arithmetic_expression> -> <unary arithmetic expression> | <addititve arithmetic expression>
+FIRST set of the Production :	FIRST(<arithmetic_expression>) = { - , + , AVID_T , FPL_T , INL_T ,  ( }
 
+*/
 void arithmetic_expression(void) {
 	switch (lookahead.code) {
 		/*First Checking if operator is unary */
@@ -310,7 +402,12 @@ void arithmetic_expression(void) {
 	}
 	gen_incode("PLATY: Arithmetic expression parsed");
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:	<unary_arithmetic_expression> -> -<primary arithmetic expression> | +<primary arithmetic expression>
+FIRST set of the Production :	FIRST(<unary_arithmetic_expression>) = { - , + }
 
+*/
 void unary_arithmetic_expression(void) {
 	switch (lookahead.code) {
 	case ART_OP_T:
@@ -330,7 +427,12 @@ void unary_arithmetic_expression(void) {
 	}
 	gen_incode("PLATY: Unary arithmetic expression parsed");
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void primary_arithmetic_expression(void) {
 	switch (lookahead.code) {
 	case AVID_T:
@@ -353,10 +455,22 @@ void primary_arithmetic_expression(void) {
 	}
 	gen_incode("PLATY: Primary arithmetic expression parsed");
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
+
+*/
 void additive_arithmetic_expression(void) {
 	multiplicative_arithmetic_expression();
 	additive_arithmetic_expression_dash();
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
+
+*/
 void additive_arithmetic_expression_dash(void) {
 	switch (lookahead.code) {
 	case ART_OP_T:
@@ -380,12 +494,22 @@ void additive_arithmetic_expression_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void multiplicative_arithmetic_expression(void) {
 	primary_arithmetic_expression();
 	multiplicative_arithmetic_expression_dash();
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void multiplicative_arithmetic_expression_dash(void) {
 	switch (lookahead.code) {
 	case ART_OP_T:
@@ -406,13 +530,23 @@ void multiplicative_arithmetic_expression_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void string_expression(void) {
 	primary_string_expression();
 	string_expression_dash();
 	gen_incode("PLATY: String expression parsed");
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void string_expression_dash(void) {
 	switch (lookahead.code) {
 	case SCC_OP_T:
@@ -422,7 +556,12 @@ void string_expression_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void primary_string_expression(void) {
 	switch (lookahead.code) {
 	case SVID_T:
@@ -432,7 +571,12 @@ void primary_string_expression(void) {
 	}
 	gen_incode("PLATY: Primary string expression parsed");
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void selection_statement(void) {
 	match(KW_T, IF);
 	if (lookahead.code == KW_T) {
@@ -454,17 +598,32 @@ void selection_statement(void) {
 	match(EOS_T, NO_ATTR);
 	gen_incode("PLATY: Selection statement parsed");
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void conditional_expression(void) {
 	logical_or_expression();
 	gen_incode("PLATY: Conditional expression parsed");
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void logical_or_expression(void) {
 	logical_and_expression();
 	logical_or_expression_dash();
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void logical_or_expression_dash(void) {
 	switch (lookahead.code)
 	{
@@ -483,11 +642,22 @@ void logical_or_expression_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
+
+*/
 void logical_and_expression(void) {
 	relational_expression();
 	logical_and_expression_dash();
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void logical_and_expression_dash(void) {
 	switch (lookahead.code)
 	{
@@ -506,7 +676,12 @@ void logical_and_expression_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void relational_expression(void) {
 	switch (lookahead.code)
 	{
@@ -527,7 +702,12 @@ void relational_expression(void) {
 	}
 	gen_incode("PLATY: Relational expression parsed");
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void primary_a_relational_expression(void) {
 	switch (lookahead.code)
 	{
@@ -543,7 +723,12 @@ void primary_a_relational_expression(void) {
 		break;
 	}
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void primary_a_relational_expression_dash(void) {
 	switch (lookahead.code)
 	{
@@ -567,6 +752,12 @@ void primary_a_relational_expression_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
+
+*/
 void primary_s_relational_expression(void) {
 	switch (lookahead.code)
 	{
@@ -580,7 +771,12 @@ void primary_s_relational_expression(void) {
 		break;
 	}
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void primary_s_relational_expression_dash(void) {
 	switch (lookahead.code)
 	{
@@ -602,7 +798,12 @@ void primary_s_relational_expression_dash(void) {
 		break;
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void iteration_statement(void) {
 	match(KW_T, WHILE);
 	if (lookahead.code == KW_T) {
@@ -620,7 +821,12 @@ void iteration_statement(void) {
 	match(EOS_T, NO_ATTR);
 	gen_incode("PLATY: Iteration statement parsed");
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void input_statement(void) {
 	match(KW_T, READ);
 	match(LPR_T, NO_ATTR);
@@ -629,13 +835,23 @@ void input_statement(void) {
 	match(EOS_T, NO_ATTR);
 	gen_incode("PLATY: Input statement parsed");
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void variable_list(void) {
 	variable_identifier();
 	variable_list_dash();
 	gen_incode("PLATY: Variable list parsed");
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void variable_identifier(void) {
 	switch (lookahead.code) {
 	case AVID_T:
@@ -647,7 +863,12 @@ void variable_identifier(void) {
 		break;
 	}
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void variable_list_dash(void) {
 	if (lookahead.code == COM_T) {
 		match(COM_T, NO_ATTR);
@@ -655,6 +876,12 @@ void variable_list_dash(void) {
 		variable_list_dash();
 	}
 }
+/*
+Author						:	Divy Shah
+Grammar Production			:
+FIRST set of the Production :
+
+*/
 void output_statement(void) {
 	match(KW_T, WRITE);
 	match(LPR_T, NO_ATTR);
@@ -663,7 +890,12 @@ void output_statement(void) {
 	match(EOS_T, NO_ATTR);
 	gen_incode("PLATY: Output statement parsed");
 }
+/*
+Author						:	Nisarg Patel
+Grammar Production			:
+FIRST set of the Production :
 
+*/
 void output_statement_dash(void) {
 	switch (lookahead.code) {
 	case AVID_T:
