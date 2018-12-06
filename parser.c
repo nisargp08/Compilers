@@ -3,7 +3,7 @@
 Filename				:	parser.c
 Compiler				:	MS Visual Studio 2015
 Author / Student name	:	Nisarg Patel,040859993
-							Divy Shah, 040859087
+Divy Shah, 040859087
 Course					:	CST 8152 - Compilers
 Lab section				:	13(Nisarg) , 14(Divy)
 Assignment				:	3
@@ -11,14 +11,14 @@ Date					:	2018/12/06
 Professor				:	Sv. Ranev
 Purpose					:	Implementing a Parser and more…
 Functions list			:	parser(),malar_next_token(),program(),match(),gen_incode(),syn_eh(),syn_printe(),exit(),printf(),opt_statements();
-							statements(), statement(),statement_dash(),assignment_statement(),assignment_expression(),arithmetic_expression(),
-							unary_arithmetic_expression(),primary_arithmetic_expression(),additive_arithmetic_expression(),additive_arithmetic_expression_dash(),
-							multiplicative_arithmetic_expression(),multiplicative_arithmetic_expression_dash(),string_expression(),string_expression_dash(),
-							primary_string_expression(),selection_statement(),conditional_expression(),logical_or_expression(),logical_and_expression(),
-							logical_or_expression_dash(),logical_and_expression_dash(),relational_expression(),primary_a_relational_expression(),
-							primary_a_relational_expression_dash(),primary_s_relational_expression(),primary_s_relational_expression_dash(),
-							void iteration_statement(),input_statement(),variable_list(),variable_identifier(),variable_list_dash(),
-							output_statement(),output_statement_dash()
+statements(), statement(),statement_dash(),assignment_statement(),assignment_expression(),arithmetic_expression(),
+unary_arithmetic_expression(),primary_arithmetic_expression(),additive_arithmetic_expression(),additive_arithmetic_expression_dash(),
+multiplicative_arithmetic_expression(),multiplicative_arithmetic_expression_dash(),string_expression(),string_expression_dash(),
+primary_string_expression(),selection_statement(),conditional_expression(),logical_or_expression(),logical_and_expression(),
+logical_or_expression_dash(),logical_and_expression_dash(),relational_expression(),primary_a_relational_expression(),
+primary_a_relational_expression_dash(),primary_s_relational_expression(),primary_s_relational_expression_dash(),
+void iteration_statement(),input_statement(),variable_list(),variable_identifier(),variable_list_dash(),
+output_statement(),output_statement_dash()
 
 *******************************************************************************************************************************/
 #include <stdlib.h>
@@ -44,10 +44,10 @@ Author					: Nisarg Patel
 History / Versions		: 2018/12/06
 Called Function			: syn_eh(),malar_next_token(),syn_printe();
 Parameters				: int pr_token_code - Holds token code for the passed token
-						  int pr_token_attribute - Holds token attribute for the passed token
+int pr_token_attribute - Holds token attribute for the passed token
 Return Value			: None
 Algorithm				: Compares passed token code and attribute with the lookahead if they match then token is increemnted else
-						  calls error handler or error function according to the condition
+calls error handler or error function according to the condition
 * ******************************************************************************************************************************/
 void match(int pr_token_code, int pr_token_attribute) {
 	/*When token code not equal to lookahead meaning match failed*/
@@ -97,7 +97,7 @@ void match(int pr_token_code, int pr_token_attribute) {
   /*Error handling function*/
   /********************************************************************************************************************************
   Purpose					: The purpose of this function to print the errors in the program,increment error counter and increment
-							  the lookahead token variable untill passed token code is not matched
+  the lookahead token variable untill passed token code is not matched
   Author					: Nisarg Patel
   History / Versions		: 2018/12/06
   Called Function			: exit(),malar_next_token(),syn_printe();
@@ -211,15 +211,15 @@ void syn_printe() {
 	}/*end switch*/
 }/* end syn_printe()*/
 
-/********************************************************************************************************************************
-Purpose					: The purpose of this function is to print the passed char*
-Author					: Nisarg Patel
-History / Versions		: 2018/12/06
-Called Function			: printf();
-Parameters				: char *string - Holds passed string
-Return Value			: None
-Algorithm				: None
-* ******************************************************************************************************************************/
+ /********************************************************************************************************************************
+ Purpose					: The purpose of this function is to print the passed char*
+ Author					: Nisarg Patel
+ History / Versions		: 2018/12/06
+ Called Function			: printf();
+ Parameters				: char *string - Holds passed string
+ Return Value			: None
+ Algorithm				: None
+ * ******************************************************************************************************************************/
 void gen_incode(char *string) {
 	/*Printing the passed string*/
 	printf("%s\n", string);
@@ -240,7 +240,7 @@ void program(void) {
 }
 /*
 Author						:	Sv.Ranev
-Grammar Production			:	<opt_statements> ->  <statements> | e  
+Grammar Production			:	<opt_statements> ->  <statements> | e
 FIRST set of the Production :	FIRST(<opt_statements>) = { AVID_T , SVID_T , KW{IF} , KW{WHILE} , KW{READ} , KW{WRITE} , e }
 
 */
@@ -310,7 +310,7 @@ void statement() {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:	<statement'> -> <statement><statement'> | e 
+Grammar Production			:	<statement'> -> <statement><statement'> | e
 FIRST set of the Production :	FIRST(<statement'>) = { AVID_T , SVID_T , KW{IF} , KW{WHILE} , KW{READ} , KW{WRITE} , e }
 
 */
@@ -375,7 +375,7 @@ void assignment_expression(void) {
 /*
 Author						:	Divy Shah
 Grammar Production			:	<arithmetic_expression> -> <unary arithmetic expression> | <addititve arithmetic expression>
-FIRST set of the Production :	FIRST(<arithmetic_expression>) = { - , + , AVID_T , FPL_T , INL_T ,  ( }
+FIRST set of the Production :	FIRST(<arithmetic_expression>) = { ART_OP_T(MINUS) , ART_OP_T(PLUS) , AVID_T , FPL_T , INL_T ,  ( }
 
 */
 void arithmetic_expression(void) {
@@ -405,7 +405,7 @@ void arithmetic_expression(void) {
 /*
 Author						:	Nisarg Patel
 Grammar Production			:	<unary_arithmetic_expression> -> -<primary arithmetic expression> | +<primary arithmetic expression>
-FIRST set of the Production :	FIRST(<unary_arithmetic_expression>) = { - , + }
+FIRST set of the Production :	FIRST(<unary_arithmetic_expression>) = { ART_OP_T(MINUS) , ART_OP_T(PLUS) }
 
 */
 void unary_arithmetic_expression(void) {
@@ -429,8 +429,8 @@ void unary_arithmetic_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<primary_arithmetic_expression> -> AVID_T | FPL_T | INL_T | (<arithmetic expression)
+FIRST set of the Production :	FIRST(<primary_arithmetic_expression>) = { AVID_T , FPL_T , INL_T , ( }
 
 */
 void primary_arithmetic_expression(void) {
@@ -457,8 +457,8 @@ void primary_arithmetic_expression(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<additive arithmetic expression> -> <multiplicative arithmetic expression><addititive arithmetic expression'>
+FIRST set of the Production :	FIRST(<additive arithmetic expression>) = { AVID_T , FPL_T , INL_T , ( }
 
 */
 void additive_arithmetic_expression(void) {
@@ -467,8 +467,10 @@ void additive_arithmetic_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<additive arithmetic expression'> -> +<multiplicative arithmetic expression><additive arithmetic expression'>
+																									|
+																	 -<multiplicative arithmetic expression><additive arithmetic expression'> | e
+FIRST set of the Production :	FIRST(<additive arithmetic expression'>) = { ART_OP_T(PLUS) , ART_OP_T(MINUS) , e }
 
 */
 void additive_arithmetic_expression_dash(void) {
@@ -496,8 +498,8 @@ void additive_arithmetic_expression_dash(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<multiplicative_arithmetic_expression> -> <primary_arithmetic_expression><multiplicative arithmetic expression'>
+FIRST set of the Production :	FIRST(<multiplicative_arithmetic_expression>) = { AVID_T , FPL_T , INL_T , ( }
 
 */
 void multiplicative_arithmetic_expression(void) {
@@ -506,8 +508,10 @@ void multiplicative_arithmetic_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<multiplicative arithmetic expression dash> -> *<primary_arithmetic_expression><multiplicative arithmetic expression'>
+																												|	
+																			   /<primary_arithmetic_expression><multiplicative arithmetic expression'> | e
+FIRST set of the Production :	FIRST(<multiplicative arithmetic expression dash>) = { ART_OP(MULTI),ART_OP(DIV),e }
 
 */
 void multiplicative_arithmetic_expression_dash(void) {
@@ -532,8 +536,8 @@ void multiplicative_arithmetic_expression_dash(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<string expression> -> <primary string expression><string expression'>
+FIRST set of the Production :	FIRST(<string expression>) = { SVID_T , STR_T }
 
 */
 void string_expression(void) {
@@ -543,8 +547,8 @@ void string_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<string_expression'> -> #<primary string expression><string expression'> | e
+FIRST set of the Production :	FIRST(<string_expression'>) = { SCC_OP_T , e }
 
 */
 void string_expression_dash(void) {
@@ -558,8 +562,8 @@ void string_expression_dash(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<primary string expression> -> SVID_T | STR_T
+FIRST set of the Production :	FIRST(<primary string expression>) = { SVID_T , STR_T }
 
 */
 void primary_string_expression(void) {
@@ -573,8 +577,9 @@ void primary_string_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<selection statement> -> IF<pre-condition>(<condition expression>) THEN {<opt_statements>}ELSE{<opt_statements>};
+								- Same as Original production
+FIRST set of the Production :	FIRST(<selection statement>) = {KW_T(IF);}
 
 */
 void selection_statement(void) {
@@ -600,8 +605,8 @@ void selection_statement(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<conditional expression> -> <logical or expression>
+FIRST set of the Production :	FIRST(<conditional expression> = { AVID_T, SVID_T , STR_T , FPL_T , INL_T }
 
 */
 void conditional_expression(void) {
@@ -610,8 +615,8 @@ void conditional_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<logical or expression> -> <logical and expression><logical or expression'>
+FIRST set of the Production :	FIRST(<logical or expression>) = {  AVID_T, SVID_T , STR_T , FPL_T , INL_T }
 
 */
 void logical_or_expression(void) {
@@ -620,8 +625,8 @@ void logical_or_expression(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<logical or expression'> -> .OR.<logical AND expression><logical OR expression'> | e
+FIRST set of the Production :	FIRST<logical or expression'> = { LOG_OP_T(OR) , e }
 
 */
 void logical_or_expression_dash(void) {
@@ -644,8 +649,8 @@ void logical_or_expression_dash(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<logical and expression> = <relational expression><logical and expression'>
+FIRST set of the Production :	FIRST(<logical and expression>) = { AVID_T , SVID_T , STR_T , FPL_T , INL_T }
 
 */
 void logical_and_expression(void) {
@@ -654,8 +659,8 @@ void logical_and_expression(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<logical and expression> = .AND.<relational expression><logical and expression'> | e
+FIRST set of the Production :	FIRST(<logical and expression>) = { LOG_OP_T(AND) , e }
 
 */
 void logical_and_expression_dash(void) {
@@ -678,8 +683,9 @@ void logical_and_expression_dash(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<relational expression> -> <primary a relational expression><primary a relational expression'> |
+															<primary s relational expression><primary s relational expression'>
+FIRST set of the Production :	FIRST(<relational expression>) = { AVID_T , SVID_T , FPL_T , INL_T , STR_T }
 
 */
 void relational_expression(void) {
@@ -704,8 +710,8 @@ void relational_expression(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<primary a relational expression> -> AVID_T | FPL_T | INL_T 
+FIRST set of the Production :	FIRST(<primary a relational expression>) = { AVID_T , FPL_T , INL_T }
 
 */
 void primary_a_relational_expression(void) {
@@ -725,8 +731,9 @@ void primary_a_relational_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<primary a relational expression'> -> ==<primary a relational expression> | <><primary a relational expression>
+																		| > <primary a relational expression> | < <primary a relational expression>
+FIRST set of the Production :	FIRST(<primary a relational expression'>) = { == , <> , > , <  }
 
 */
 void primary_a_relational_expression_dash(void) {
@@ -754,8 +761,8 @@ void primary_a_relational_expression_dash(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<primary_s_relational_expression> -> <primary string expression>
+FIRST set of the Production :	FIRST(<primary_s_relational_expression>) = { SVID_T , STR_T }
 
 */
 void primary_s_relational_expression(void) {
@@ -773,8 +780,9 @@ void primary_s_relational_expression(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<primary_s_relational_expression'> -> ==<primary_s_relational_expression> | <><primary_s_relational_expression> |
+																		< <primary_s_relational_expression> | > <primary_s_relational_expression>
+FIRST set of the Production :	FIRST(<primary_s_relational_expression'>) = { == , <> , < , > }
 
 */
 void primary_s_relational_expression_dash(void) {
@@ -789,7 +797,6 @@ void primary_s_relational_expression_dash(void) {
 		case LT:
 			match(REL_OP_T, lookahead.attribute.rel_op);
 			primary_s_relational_expression();
-			//gen_incode("PLATY: Primary s_relational expression parsed");
 			break;
 		default:
 			syn_printe();
@@ -800,8 +807,10 @@ void primary_s_relational_expression_dash(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<iteration_statement> -> WHILE<pre-condition>(<conditional expression>) REPEAT { <statatements> };
+								<pre-condition> -> TRUE | FALSE
+FIRST set of the Production :	FIRST(<iteration_statement>) = { KW_T(WHILE); }
+								FIRST(<pre-condition>) = { KW_T(TRUE) , KW_T(FALSE) }
 
 */
 void iteration_statement(void) {
@@ -823,8 +832,8 @@ void iteration_statement(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<input_statement> -> READ(<variable list>);
+FIRST set of the Production :	FIRST(<input_statement>) = { KW_T(READ) }
 
 */
 void input_statement(void) {
@@ -837,8 +846,8 @@ void input_statement(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<variable list> -> <variable identifier><variable list'>
+FIRST set of the Production :	FIRST(<variable list>) = { AVID_T , SVID_T }
 
 */
 void variable_list(void) {
@@ -848,8 +857,8 @@ void variable_list(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<variable identifier> -> { AVID_T | SVID_T }
+FIRST set of the Production :	FIRST(<variable identifier>) = { AVID_T , SVID_T }
 
 */
 void variable_identifier(void) {
@@ -865,8 +874,8 @@ void variable_identifier(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<variable_list'> -> { ,<variable identifier><variable list'> | e}
+FIRST set of the Production :	FIRST(<variable_list'>) = { COM_T , e }
 
 */
 void variable_list_dash(void) {
@@ -878,8 +887,8 @@ void variable_list_dash(void) {
 }
 /*
 Author						:	Divy Shah
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<output_statement> -> WRITE(<output statement'>);
+FIRST set of the Production :	FIRST(<output_statement>) = { KW_T(WRITE) }
 
 */
 void output_statement(void) {
@@ -892,8 +901,8 @@ void output_statement(void) {
 }
 /*
 Author						:	Nisarg Patel
-Grammar Production			:
-FIRST set of the Production :
+Grammar Production			:	<output statement'> -> <variable list> | STR_T | e
+FIRST set of the Production :	FIRST(<output statement'>) = { AVID_T , SVID_T , STR_T , e }
 
 */
 void output_statement_dash(void) {
